@@ -21,7 +21,7 @@
     "dependencies": {
         "@discordjs/rest": "^1.6.0",
         "@discordjs/voice": "^0.16.0",
-        "@formatjs/intl": "^2.6.9",
+        "@formatjs/intl": "^3.0.1",
         "@liamcottle/push-receiver": "^0.0.4",
         "@liamcottle/rustplus.js": "^2.4.0",
         "axios": "^1.3.4",
