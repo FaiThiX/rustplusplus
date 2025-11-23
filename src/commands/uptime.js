@@ -19,6 +19,7 @@
 */
 
 const Builder = require('@discordjs/builders');
+const { MessageFlags } = require('discord.js');
 
 const DiscordMessages = require('../discordTools/discordMessages.js');
 const Timer = require('../util/timer.js');
@@ -45,7 +46,7 @@ module.exports = {
 		client.logInteraction(interaction, verifyId, 'slashCommand');
 
 		if (!await client.validatePermissions(interaction)) return;
-		await interaction.deferReply({ ephemeral: true });
+		await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
 		let string = '';
 		switch (interaction.options.getSubcommand()) {

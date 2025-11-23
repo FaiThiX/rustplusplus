@@ -19,6 +19,7 @@
 */
 
 const Builder = require('@discordjs/builders');
+const { MessageFlags } = require('discord.js');
 
 const DiscordEmbeds = require('../discordTools/discordEmbeds.js');
 const DiscordMessages = require('../discordTools/discordMessages.js');
@@ -59,7 +60,7 @@ module.exports = {
 		client.logInteraction(interaction, verifyId, 'slashCommand');
 
 		if (!await client.validatePermissions(interaction)) return;
-		await interaction.deferReply({ ephemeral: true });
+		await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
 		const recycleItemName = interaction.options.getString('name');
 		const recycleItemId = interaction.options.getString('id');

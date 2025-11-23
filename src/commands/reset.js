@@ -19,6 +19,7 @@
 */
 
 const Builder = require('@discordjs/builders');
+const { MessageFlags } = require('discord.js');
 
 const Config = require('../../config');
 const DiscordEmbeds = require('../discordTools/discordEmbeds.js');
@@ -73,7 +74,7 @@ module.exports = {
 			client.log(client.intlGet(null, 'warningCap'), str);
 			return;
 		}
-		await interaction.deferReply({ ephemeral: true });
+		await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
 		const guild = DiscordTools.getGuild(interaction.guildId);
 

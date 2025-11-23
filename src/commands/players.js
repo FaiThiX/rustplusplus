@@ -19,6 +19,7 @@
 */
 
 const Builder = require('@discordjs/builders');
+const { MessageFlags } = require('discord.js');
 
 const Constants = require('../util/constants.js');
 const DiscordEmbeds = require('../discordTools/discordEmbeds.js');
@@ -68,7 +69,7 @@ module.exports = {
 		client.logInteraction(interaction, verifyId, 'slashCommand');
 
 		if (!await client.validatePermissions(interaction)) return;
-		await interaction.deferReply({ ephemeral: true });
+		await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
 		let battlemetricsId = interaction.options.getString('battlemetricsid');
 

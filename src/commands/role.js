@@ -19,6 +19,7 @@
 */
 
 const Builder = require('@discordjs/builders');
+const { MessageFlags } = require('discord.js');
 
 const DiscordEmbeds = require('../discordTools/discordEmbeds');
 const DiscordTools = require('../discordTools/discordTools');
@@ -58,7 +59,7 @@ module.exports = {
 			return;
 		}
 
-		await interaction.deferReply({ ephemeral: true });
+		await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
 		let role = null;
 		switch (interaction.options.getSubcommand()) {

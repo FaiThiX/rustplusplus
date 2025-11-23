@@ -20,6 +20,7 @@
 
 const _ = require('lodash');
 const Builder = require('@discordjs/builders');
+const { MessageFlags } = require('discord.js');
 
 const Config = require('../../config');
 const DiscordEmbeds = require('../discordTools/discordEmbeds.js');
@@ -85,7 +86,7 @@ module.exports = {
         client.logInteraction(interaction, verifyId, 'slashCommand');
 
         if (!await client.validatePermissions(interaction)) return;
-        await interaction.deferReply({ ephemeral: true });
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
         switch (interaction.options.getSubcommand()) {
             case 'add': {
