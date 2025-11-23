@@ -61,7 +61,7 @@ module.exports = {
         const targetPath = Path.join(__dirname, '..', '..', 'instances', `${guildId}.json`);
         const tempPath = targetPath + '.tmp';
         
-        const data = JSON.stringify(instance, null, 2);
+        const data = JSON.stringify(instance, null, 4);
 
         Fs.writeFileSync(tempPath, data, 'utf8');
         try {
