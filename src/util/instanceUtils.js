@@ -83,6 +83,6 @@ module.exports = {
 
     writeCredentialsFile: function (guildId, credentials) {
         const path = Path.join(__dirname, '..', '..', 'credentials', `${guildId}.json`);
-        Fs.writeFileSync(path, JSON.stringify(credentials, null, 2));
+        Fs.writeFileSync(path, JSON.stringify(credentials, null, 4));
     },
 }
