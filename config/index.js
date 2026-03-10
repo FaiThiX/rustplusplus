@@ -24,6 +24,7 @@ module.exports = {
         pollingIntervalMs: process.env.RPP_POLLING_INTERVAL || 10000,
         showCallStackError: process.env.RPP_LOG_CALL_STACK || false,
         reconnectIntervalMs: process.env.RPP_RECONNECT_INTERVAL || 15000,
+        socksProxyUrl: process.env.RPP_SOCKS_PROXY_URL || '',
     },
     discord: {
         username: process.env.RPP_DISCORD_USERNAME || 'rustplusplus',

@@ -22,10 +22,13 @@ const RustPlusLib = require('@liamcottle/rustplus.js');
 
 const Client = require('../../index.ts');
 const Config = require('../../config');
+const connectRustPlusWebSocket = require('../util/rustPlusConnect.js');
+const RustPlusProxy = require('../util/rustPlusProxy.js');
 
 class RustPlusLite extends RustPlusLib {
     constructor(guildId, logger, rustplus, serverIp, appPort, steamId, playerToken) {
         super(serverIp, appPort, steamId, playerToken);
+        this.webSocketOptions = RustPlusProxy.getRustPlusWebSocketOptions();
 
         this.serverId = `${this.server}-${this.port}`;
         this.guildId = guildId;
@@ -35,6 +38,11 @@ class RustPlusLite extends RustPlusLib {
         this.isActive = true;
 
         this.loadRustPlusLiteEvents();
+    }
+
+    connect() {
+        if (!this.webSocketOptions) return super.connect();
+        return connectRustPlusWebSocket(this, this.webSocketOptions);
     }
 
     loadRustPlusLiteEvents() {

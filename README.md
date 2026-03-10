@@ -76,6 +76,8 @@ or
 
 Make sure you use the correct values for DISCORD_CLIENT_ID as well as DISCORD_TOKEN in the docker command/docker-compose.yml
 
+Optional: set `RPP_SOCKS_PROXY_URL=socks5://user:pass@host:port` to route RustPlus WebSocket traffic through a SOCKS5 proxy.
+
 ## **Thanks to**
 
 **liamcottle**@GitHub - for the [rustplus.js](https://github.com/liamcottle/rustplus.js) library.

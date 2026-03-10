@@ -35,6 +35,8 @@ const InstanceUtils = require('../util/instanceUtils.js');
 const Languages = require('../util/languages.js');
 const Logger = require('./Logger.js');
 const Map = require('../util/map.js');
+const connectRustPlusWebSocket = require('../util/rustPlusConnect.js');
+const RustPlusProxy = require('../util/rustPlusProxy.js');
 const RustPlusLite = require('../structures/RustPlusLite');
 const TeamHandler = require('../handlers/teamHandler.js');
 const Timer = require('../util/timer.js');
@@ -45,6 +47,7 @@ const TOKENS_REPLENISH = 3;     /* Per second */
 class RustPlus extends RustPlusLib {
     constructor(guildId, serverIp, appPort, steamId, playerToken) {
         super(serverIp, appPort, steamId, playerToken);
+        this.webSocketOptions = RustPlusProxy.getRustPlusWebSocketOptions();
 
         this.serverId = `${this.server}-${this.port}`;
         this.guildId = guildId;
@@ -114,6 +117,11 @@ class RustPlus extends RustPlusLib {
         this.mapMarkers = null;     /* Stores the MapMarkers structure. */
 
         this.loadRustPlusEvents();
+    }
+
+    connect() {
+        if (!this.webSocketOptions) return super.connect();
+        return connectRustPlusWebSocket(this, this.webSocketOptions);
     }
 
     loadRustPlusEvents() {
