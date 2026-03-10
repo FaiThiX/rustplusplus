@@ -5,6 +5,7 @@ services:
     environment:
       - RPP_DISCORD_TOKEN=TOKEN
       - RPP_DISCORD_CLIENT_ID=CLIENT_ID
+      - RPP_SOCKS_PROXY_URL=
     volumes:
       - ./logs:/app/logs
       - ./instances:/app/instances
