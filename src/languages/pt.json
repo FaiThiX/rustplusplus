@@ -311,7 +311,7 @@
     "couldNotPerformMessageDelete": "Não foi possível apagar a mensagem.",
     "couldNotPerformMessagesFetch": "Não foi possível realizar a pesquisa de mensagens no canal: {channel}",
     "couldNotRegisterSlashCommands": "Não foi possível registar comandos Barra para a guilda: {guildId}. ",
-    "couldNotSetParent": "Could not set parent for channel: {channelId}",
+    "couldNotSetParent": "Não foi possível definir o pai para o canal: {channelId}",
     "craft": "Criar",
     "crate": "Caixa",
     "createGroupCap": "CRIAR GRUPO",
