@@ -32,49 +32,24 @@ import { FcmListenerManager } from './src/managers/fcmListenerManager';
 
 dotenv.config();
 
-/* Function to get a required string value (throws an error if missing) */
-function getStringEnv(key: string, defaultValue?: string): string {
-    const value = process.env[key];
-    if (value === undefined) {
-        if (defaultValue !== undefined) {
-            return defaultValue;
-        }
-        throw new Error(`[index.ts] Missing required environment variable '${key}'`);
-    }
-    return value;
-}
-
-/* Function to get an optional number value (uses default if missing or invalid) */
-function getNumberEnv(key: string, defaultValue: number): number {
-    const value = Number(process.env[key]);
-    return Number.isNaN(value) ? defaultValue : value;
-};
-
-/* Function to get a boolean value (treats 'true' as true, everything else as false) */
-function getBooleanEnv(key: string, defaultValue: boolean = false): boolean {
-    const value = process.env[key];
-    return value === 'true' ? true : defaultValue;
-};
-
 export const config = {
     general: {
-        debug: getBooleanEnv('RPP_DEBUG', false),
-        language: (() => {
-            const lang = getStringEnv('RPP_LANGUAGE', 'en');
-            return isValidLanguage(lang) ? lang as Languages : Languages.ENGLISH;
-        })(),
-        serverPollingHandlerIntervalMs: getNumberEnv('RPP_SERVER_POLLING_HANDLER_INTERVAL_MS', 10_000),
-        showCallStackOnError: getBooleanEnv('RPP_SHOW_CALL_STACK_ON_ERROR', false),
-        reconnectIntervalMs: getNumberEnv('RPP_RECONNECT_INTERVAL_MS', 15_000)
+        debug: process.env.RPP_DEBUG === 'true',
+        language: isValidLanguage(process.env.RPP_LANGUAGE) ? process.env.RPP_LANGUAGE as Languages : Languages.ENGLISH,
+        serverPollingHandlerIntervalMs: Number(process.env.RPP_SERVER_POLLING_HANDLER_INTERVAL_MS ?? '') || 10_000,
+        showCallStackOnError: (process.env.RPP_SHOW_CALL_STACK_ON_ERROR === 'true') || false,
+        reconnectIntervalMs: Number(process.env.RPP_RECONNECT_INTERVAL_MS ?? '') || 15_000
     },
     discord: {
-        username: getStringEnv('RPP_DISCORD_USERNAME', 'rustplusplus'),
-        clientId: getStringEnv('RPP_DISCORD_CLIENT_ID'),
-        token: getStringEnv('RPP_DISCORD_TOKEN'),
-        useCache: getBooleanEnv('RPP_USE_CACHE', true),
-        enforceNameChange: getBooleanEnv('RPP_ENFORCE_NAME_CHANGE', true),
-        enforceAvatarChange: getBooleanEnv('RPP_ENFORCE_AVATAR_CHANGE', true),
-        enforceChannelPermissions: getBooleanEnv('RPP_ENFORCE_CHANNEL_PERMISSIONS', true)
+        username: process.env.RPP_DISCORD_USERNAME || 'rustplusplus',
+        clientId: process.env.RPP_DISCORD_CLIENT_ID ||
+            (() => { throw new Error('RPP_DISCORD_CLIENT_ID is required.'); })(),
+        token: process.env.RPP_DISCORD_TOKEN ||
+            (() => { throw new Error('RPP_DISCORD_TOKEN is required.'); })(),
+        useCache: process.env.RPP_USE_CACHE === 'true',
+        enforceNameChange: process.env.RPP_ENFORCE_NAME_CHANGE === 'true',
+        enforceAvatarChange: process.env.RPP_ENFORCE_AVATAR_CHANGE === 'true',
+        enforceChannelPermissions: process.env.RPP_ENFORCE_CHANNEL_PERMISSIONS === 'true'
     }
 }
 
