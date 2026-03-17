@@ -23,6 +23,7 @@ import * as rp from 'rustplus-ts';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as winston from 'winston';
+import { Logger } from 'winston';
 
 import { log, discordManager as dm, guildInstanceManager as gim, config, localeManager as lm } from '../../index';
 import * as constants from '../utils/constants';
