@@ -71,9 +71,6 @@ export class CredentialsManager {
     private expirationTimeoutIds: Map<types.SteamId, NodeJS.Timeout>;
 
     constructor(credentialFilesPath: string) {
-        const fn = '[CredentialsManager: Init]';
-        log.info(`${fn} Credentials files path '${credentialFilesPath}'.`);
-
         this.credentialFilesPath = credentialFilesPath;
         this.credentialsMap = {};
         this.expirationTimeoutIds = new Map();
@@ -82,8 +79,6 @@ export class CredentialsManager {
     }
 
     private loadAllCredentials(): void {
-        const fn = '[CredentialsManager: loadAllCredentials]';
-
         const credentialFiles = fs.readdirSync(this.credentialFilesPath);
 
         credentialFiles.forEach((file) => {
@@ -91,7 +86,7 @@ export class CredentialsManager {
             const credentials = this.readCredentialsFile(steamId);
 
             if (typeof credentials === 'number') {
-                throw new Error(`${fn} Failed to load Credentials file '${file}'. Exiting...`);
+                throw new Error(`Failed to load Credentials file '${file}'. Exiting...`);
             }
 
             this.credentialsMap[steamId] = credentials;
@@ -99,13 +94,10 @@ export class CredentialsManager {
     }
 
     private readCredentialsFile(steamId: types.SteamId): Credentials | ReadError {
-        const fn = `[CredentialsManager: readCredentialsFile: ${steamId}]`;
-        log.debug(`${fn} Reading Credentials file.`);
-
         const credentialsFilePath = path.join(this.credentialFilesPath, `${steamId}.json`);
 
         if (!fs.existsSync(credentialsFilePath)) {
-            log.warn(`${fn} Credentials file could not be found.`);
+            log.warn(`Credentials file for ${steamId} could not be found.`);
             return ReadError.NotFound;
         }
 
@@ -114,7 +106,7 @@ export class CredentialsManager {
             credentialsFileContent = fs.readFileSync(credentialsFilePath, 'utf8');
         }
         catch (error) {
-            log.warn(`${fn} Failed to read Credentials file '${credentialsFilePath}', ${error}`);
+            log.warn(`Failed to read Credentials file '${credentialsFilePath}', ${error}`);
             return ReadError.ReadFailed;
         }
 
@@ -123,42 +115,39 @@ export class CredentialsManager {
             credentialsFileContentParsed = JSON.parse(credentialsFileContent);
         }
         catch (error) {
-            log.warn(`${fn} Credentials file failed parse. Data: ${credentialsFileContent}, ${error}`);
+            log.warn(`Credentials file for ${steamId} failed parse. Data: ${credentialsFileContent}, ${error}`);
             return ReadError.ParseFailed;
         }
 
         if (!isValidCredentials(credentialsFileContentParsed)) {
-            log.warn(`${fn} Credentials file have invalid format. Data: ` +
+            log.warn(`Credentials file for ${steamId} have invalid format. Data: ` +
                 `${JSON.stringify(credentialsFileContentParsed)}`);
             return ReadError.InvalidFormat;
         }
 
         if (credentialsFileContentParsed.version !== VERSION) {
-            log.warn(`${fn} Credentials file have invalid version. ` +
+            log.warn(`Credentials file for ${steamId} have invalid version. ` +
                 `Expected: ${VERSION}, Actual: ${credentialsFileContentParsed.version}`);
             return ReadError.InvalidVersion;
         }
 
         const currentTimestamp = Math.floor(Date.now() / 1000);
         if (credentialsFileContentParsed.expireDate < currentTimestamp) {
-            log.warn(`${fn} Credentials have expired. Expire date: ${credentialsFileContentParsed.expireDate}`);
+            log.warn(`Credentials for ${steamId} have expired. Expire date: ` +
+                `${credentialsFileContentParsed.expireDate}`);
         }
 
-        log.debug(`${fn} Credentials file was successfully read.`);
         return credentialsFileContentParsed as Credentials;
     }
 
     private writeCredentialsFile(steamId: types.SteamId, credentials: Credentials): WriteError {
-        const fn = `[CredentialsManager: writeCredentialsFile: ${steamId}]`;
-        log.debug(`${fn} Writing Credentials to file.`);
-
         if (!isValidCredentials(credentials)) {
-            log.warn(`${fn} Credentials have invalid format. Data: ${JSON.stringify(credentials)}`);
+            log.warn(`Credentials for ${steamId} have invalid format. Data: ${JSON.stringify(credentials)}`);
             return WriteError.InvalidFormat;
         }
 
         if (credentials.version !== VERSION) {
-            log.warn(`${fn} Credentials have invalid version. Expected: ${VERSION}, ` +
+            log.warn(`Credentials for ${steamId} have invalid version. Expected: ${VERSION}, ` +
                 `Actual: ${credentials.version}`);
             return WriteError.InvalidVersion;
         }
@@ -170,22 +159,18 @@ export class CredentialsManager {
             fs.writeFileSync(credentialsFilePath, credentialsString);
         }
         catch (error) {
-            log.warn(`${fn} Failed to write Credentials file '${credentialsFilePath}', ${error}`);
+            log.warn(`Failed to write Credentials file '${credentialsFilePath}', ${error}`);
             return WriteError.WriteFailed;
         }
 
-        log.debug(`${fn} Credentials was successfully written.`);
         return WriteError.NoError;
     }
 
     private deleteCredentialsFile(steamId: types.SteamId): boolean {
-        const fn = `[CredentialsManager: deleteCredentialsFile: ${steamId}]`;
-        log.debug(`${fn} Delete Credentials file.`);
-
         const credentialsFilePath = path.join(this.credentialFilesPath, `${steamId}.json`);
 
         if (!fs.existsSync(credentialsFilePath)) {
-            log.warn(`${fn} Could not find Credentials file '${credentialsFilePath}'.`);
+            log.warn(`Could not find Credentials file '${credentialsFilePath}'.`);
             return false;
         }
 
@@ -193,11 +178,11 @@ export class CredentialsManager {
             fs.unlinkSync(credentialsFilePath);
         }
         catch (error) {
-            log.warn(`${fn} Failed to delete Credentials file '${credentialsFilePath}', ${error}`);
+            log.warn(`Failed to delete Credentials file '${credentialsFilePath}', ${error}`);
             return false;
         }
 
-        log.debug(`${fn} Credentials file '${credentialsFilePath}' was successfully deleted.`);
+        log.info(`Credentials file for ${steamId} was successfully deleted.`);
         return true;
     }
 
@@ -257,17 +242,15 @@ export class CredentialsManager {
     }
 
     public updateCredentials(steamId: types.SteamId): boolean {
-        const fn = `[CredentialsManager: updateCredentials: ${steamId}]`;
-
         const credentials = this.credentialsMap[steamId];
         if (!credentials) {
-            log.warn(`${fn} Credentials could not be found.`);
+            log.warn(`Credentials for ${steamId} could not be found.`);
             return false;
         }
 
         const result = this.writeCredentialsFile(steamId, credentials);
         if (result !== WriteError.NoError) {
-            log.warn(`${fn} Failed to update Credentials file.`);
+            log.warn(`Failed to update Credentials file for ${steamId}.`);
             return false;
         }
 
@@ -286,15 +269,13 @@ export class CredentialsManager {
     }
 
     public addCredentials(steamId: types.SteamId, credentials: Credentials): boolean {
-        const fn = `[CredentialsManager: addCredentials: ${steamId}]`;
-
         if (steamId in this.credentialsMap) {
-            log.warn(`${fn} Old Credentials will be overwritten.`);
+            log.warn(`Credentials for ${steamId} will be overwritten.`);
         }
 
         const result = this.writeCredentialsFile(steamId, credentials);
         if (result !== WriteError.NoError) {
-            log.warn(`${fn} Failed to write Credentials to file.`);
+            log.warn(`Failed to write Credentials to file for ${steamId}.`);
             return false;
         }
 
@@ -304,8 +285,6 @@ export class CredentialsManager {
     }
 
     public scheduleExpireTimeout(steamId: types.SteamId, dm: DiscordManager) {
-        const fn = `[CredentialsManager: scheduleExpireTimeout: ${steamId}]`;
-
         if (this.expirationTimeoutIds.has(steamId)) {
             /* Ensure no duplicate timeouts exist. */
             this.cancelExpireTimeout(steamId);
@@ -328,18 +307,15 @@ export class CredentialsManager {
         }, timeoutMs);
 
         this.expirationTimeoutIds.set(steamId, timeoutId);
-        log.info(`${fn} Expires in ${timeoutMs / 1000} seconds.`);
+        log.info(`Credentials for ${steamId} will expire in ${timeoutMs / 1000} seconds.`);
     }
 
     public cancelExpireTimeout(steamId: types.SteamId) {
-        const fn = `[CredentialsManager: cancelExpireTimeout: ${steamId}]`;
-
         const timeoutId = this.expirationTimeoutIds.get(steamId);
         if (timeoutId) {
             clearTimeout(timeoutId);
             this.expirationTimeoutIds.delete(steamId);
         }
-        log.info(`${fn} Expire timeout deleted.`);
     }
 }
 

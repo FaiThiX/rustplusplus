@@ -54,8 +54,6 @@ export class DiscordManager {
     public connectionStarted: string[];
 
     constructor() {
-        const fn = '[DiscordManager: Init]';
-        log.info(`${fn} Starting DiscordManager.`);
         this.client = new discordjs.Client({
             presence: {
                 status: 'online', /* 'online', 'idle', 'dnd', 'invisible' */
@@ -90,7 +88,6 @@ export class DiscordManager {
 
     private async getCommandData(language: string, type: 'global' | 'guild' = 'global'):
         Promise<discordjs.SlashCommandBuilder[]> {
-        const fn = '[DiscordManager: getCommandData]';
         const commandDir = type === 'global' ? GLOBAL_SLASH_COMMANDS_DIR : GUILD_SLASH_COMMANDS_DIR;
         const commandFiles = fs.readdirSync(path.join(__dirname, '..', commandDir))
             .filter(file => file.endsWith('.ts'));
@@ -103,7 +100,7 @@ export class DiscordManager {
                 commandsData.push(commandData);
             }
             catch (error) {
-                log.error(`${fn} Failed to load command from '${file}', ${error}.`);
+                log.error(`Failed to load command from '${file}', ${error}.`);
             }
         }
 
@@ -112,7 +109,6 @@ export class DiscordManager {
 
     /* Generally to store all the commands to use elsewhere. */
     private async loadSlashCommands() {
-        const fn = '[DiscordManager: loadSlashCommands]';
         /* Global */
         const globalCommandFiles = fs.readdirSync(path.join(__dirname, '..', GLOBAL_SLASH_COMMANDS_DIR))
             .filter(file => file.endsWith('.ts'));
@@ -127,7 +123,7 @@ export class DiscordManager {
                 });
             }
             catch (error) {
-                log.error(`${fn} Failed to load command from '${file}', ${error}`)
+                log.error(`Failed to load command from '${file}', ${error}`)
             }
         }
 
@@ -145,43 +141,35 @@ export class DiscordManager {
                 });
             }
             catch (error) {
-                log.error(`${fn} Failed to load command from '${file}', ${error}`)
+                log.error(`Failed to load command from '${file}', ${error}`)
             }
         }
     }
 
     public async registerGlobalSlashCommands() {
-        const fn = '[DiscordManager: registerGlobalSlashCommands]';
         try {
             const commandsData = await this.getCommandData(config.general.language);
             if (commandsData.length === 0) {
-                log.warn(`[registerGlobalSlashCommands] No global slash commands found.`);
+                log.warn(`No global slash commands found.`);
                 return;
             }
 
             const rest = new discordjs.REST({ version: '10' }).setToken(config.discord.token);
             await rest.put(discordjs.Routes.applicationCommands(config.discord.clientId), { body: commandsData });
-
-            log.info(`${fn} Successfully registered/updated global slash commands.`);
         }
         catch (error) {
-            log.error(`${fn} Failed to register/update global slash commands, ${error}.`);
+            log.error(`Failed to register/update global slash commands, ${error}.`);
         }
     }
 
     public async registerGuildSlashCommands(guild: discordjs.Guild) {
-        const fn = '[DiscordManager: registerGuildSlashCommands]';
-        const logParam = {
-            guildId: guild.id
-        };
-
         try {
             const gInstance = gim.getGuildInstance(guild.id) as GuildInstance;
             const language = gInstance.generalSettings.language;
 
             const commandsData = await this.getCommandData(language, 'guild');
             if (commandsData.length === 0) {
-                log.warn(`${fn} No guild slash commands found.`, logParam);
+                log.warn(`No guild slash commands found.`, { guildId: guild.id });
                 return;
             }
 
@@ -189,16 +177,13 @@ export class DiscordManager {
             await rest.put(discordjs.Routes.applicationGuildCommands(config.discord.clientId, guild.id),
                 { body: commandsData })
 
-            log.info(`${fn} Successfully registered/updated guild slash commands for '${guild.name}'.`, logParam);
         }
         catch (error) {
-            log.error(`${fn} Failed to register/update guild slash commands for guild '${guild.name}', ` +
-                `${error}.`, logParam);
+            log.error(`Failed to register/update guild slash commands, ${error}.`, { guildId: guild.id });
         }
     }
 
     public async loadEvents() {
-        const fn = '[DiscordManager: loadEvents]';
         const eventFiles = fs.readdirSync(path.join(__dirname, '..', DISCORD_EVENTS_DIR))
             .filter(file => file.endsWith('.ts'));
 
@@ -225,14 +210,12 @@ export class DiscordManager {
                 events.push(name);
             }
             catch (error) {
-                log.error(`${fn} Failed to load event '${file}', ${error}.`)
+                log.error(`Failed to load event '${file}', ${error}.`)
             }
         }
-        log.info(`${fn} Successfully loaded events ${events.join(', ')}.`);
     }
 
     public async unloadEvents() {
-        const fn = '[DiscordManager: unloadEvents]';
         for (const { name, listener } of this.eventListeners) {
             if (name === 'rateLimited') {
                 this.client.rest.off(name, listener);
@@ -242,40 +225,38 @@ export class DiscordManager {
             }
         }
         this.eventListeners = [];
-        log.info(`${fn} Successfully unloaded all events.`);
     }
 
     public async build() {
-        const fn = '[DiscordManager: build]';
         try {
             this.client.login(config.discord.token);
         }
         catch (error) {
             if (error instanceof Error) {
-                log.error(`${fn} Error when trying to login, ${error.message}`);
-                log.error(`${fn} Stack trace:\n${error.stack}`);
+                log.error(`Error when trying to login, ${error.message}`);
+                log.error(`Stack trace:\n${error.stack}`);
 
                 if (error.message.includes('Invalid Token')) {
-                    log.error(`${fn} The bot token is invalid. Please check the token in the .env file.`);
+                    log.error(`The bot token is invalid. Please check the token in the .env file.`);
                 }
                 else if (error.message.includes('Rate Limited')) {
-                    log.error(`${fn} The bot was rate-limimted. Please wait and try again later.`);
+                    log.error(`The bot was rate-limimted. Please wait and try again later.`);
                 }
                 else if (error.message.includes('Unauthorized')) {
-                    log.error(`${fn} The bot token is unauthorized. Check if the token has been revoked.`);
+                    log.error(`The bot token is unauthorized. Check if the token has been revoked.`);
                 }
                 else if (error.message.includes('Missing Access')) {
-                    log.error(`${fn} The bot is missing required permissions of intents.`);
+                    log.error(`The bot is missing required permissions of intents.`);
                 }
                 else if (error.message.includes('Timeout')) {
-                    log.error(`${fn} There was a timeout connecting to Discord. Check your internet connection.`);
+                    log.error(`There was a timeout connecting to Discord. Check your internet connection.`);
                 }
                 else {
-                    log.error(`${fn} An unknown error occurred during login.`);
+                    log.error(`An unknown error occurred during login.`);
                 }
             }
             else {
-                log.error(`${fn} An unexpected error occurred during login: ${error}`);
+                log.error(`An unexpected error occurred during login: ${error}`);
             }
         }
     }
@@ -325,11 +306,6 @@ export class DiscordManager {
     }
 
     public async setupGuildCategory(guild: discordjs.Guild, enforceChannelPermissions: boolean = false) {
-        const fn = '[DiscordManager: setupGuildCategory]';
-        const logParam = {
-            guildId: guild.id
-        };
-
         const gInstance = gim.getGuildInstance(guild.id) as GuildInstance;
         const categoryPermissions = this.getChannelPermissions(guild, 'category');
 
@@ -338,7 +314,7 @@ export class DiscordManager {
             category = await this.getChannel(guild.id, gInstance.guildChannelIds.category);
 
             if (!category) {
-                log.warn(`${fn} Failed to get category '${gInstance.guildChannelIds.category}'.`, logParam);
+                log.warn(`Failed to get category '${gInstance.guildChannelIds.category}'.`, { guildId: guild.id });
             }
         }
 
@@ -348,7 +324,7 @@ export class DiscordManager {
                 discordjs.ChannelType.GuildCategory, categoryPermissions);
 
             if (!category) {
-                log.error(`${fn} Failed to create category '${gInstance.guildChannelIds.category}'.`, logParam);
+                log.error(`Failed to create category '${gInstance.guildChannelIds.category}'.`, { guildId: guild.id });
             }
         }
 
@@ -375,11 +351,6 @@ export class DiscordManager {
 
     public async setupGuildChannel(guild: discordjs.Guild, channelName: keyof GuildChannelIds,
         enforceChannelPermissions: boolean = false) {
-        const fn = '[DiscordManager: setupGuildChannel]';
-        const logParam = {
-            guildId: guild.id
-        };
-
         const gInstance = gim.getGuildInstance(guild.id) as GuildInstance;
         const channelDisplayName = lm.getIntl(gInstance.generalSettings.language,
             `guildChannelDisplayName-${channelName}`)
@@ -391,7 +362,7 @@ export class DiscordManager {
             channel = await this.getChannel(guild.id, gInstance.guildChannelIds[channelName]);
 
             if (!channel) {
-                log.warn(`${fn} Failed to get channel '${gInstance.guildChannelIds[channelName]}'.`, logParam);
+                log.warn(`Failed to get channel '${gInstance.guildChannelIds[channelName]}'.`, { guildId: guild.id });
             }
         }
 
@@ -401,7 +372,7 @@ export class DiscordManager {
                 channelPermissions, categoryId);
 
             if (!channel) {
-                log.error(`${fn} Failed to create channel '${channelDisplayName}'.`, logParam);
+                log.error(`Failed to create channel '${channelDisplayName}'.`, { guildId: guild.id });
             }
         }
 
@@ -416,11 +387,6 @@ export class DiscordManager {
     }
 
     public async setupGuildSettingsChannel(guild: discordjs.Guild, update: boolean = true, create: boolean = false) {
-        const fn = '[DiscordManager: setupGuildSettingsChannel]';
-        const logParam = {
-            guildId: guild.id
-        };
-
         /* If all settings messages are null, then send all settings messages. */
         const gInstance = gim.getGuildInstance(guild.id) as GuildInstance;
         if (Object.values(gInstance.settingsMessages).every(value => value === null)) {
@@ -428,7 +394,7 @@ export class DiscordManager {
         }
 
         if (!('settings' in gInstance.guildChannelIds)) {
-            log.warn(`${fn} Could not find settings channel.`, logParam);
+            log.warn(`Could not find settings channel.`, { guildId: guild.id });
             return;
         }
 
@@ -463,14 +429,9 @@ export class DiscordManager {
     }
 
     public async setupGuildServersChannel(guild: discordjs.Guild, update: boolean = true, create: boolean = false) {
-        const fn = '[DiscordManager: setupGuildServersChannel]';
-        const logParam = {
-            guildId: guild.id
-        };
-
         const gInstance = gim.getGuildInstance(guild.id) as GuildInstance;
         if (!('servers' in gInstance.guildChannelIds)) {
-            log.warn(`${fn} Could not find servers channel.`, logParam);
+            log.warn(`Could not find servers channel.`, { guildId: guild.id });
             return;
         }
 
@@ -491,14 +452,9 @@ export class DiscordManager {
 
     public async setupGuildSmartSwitchesChannel(guild: discordjs.Guild, update: boolean = true,
         create: boolean = false) {
-        const fn = '[DiscordManager: setupGuildSmartSwitchesChannel]';
-        const logParam = {
-            guildId: guild.id
-        };
-
         const gInstance = gim.getGuildInstance(guild.id) as GuildInstance;
         if (!('smartSwitches' in gInstance.guildChannelIds)) {
-            log.warn(`${fn} Could not find smartSwitches channel.`, logParam);
+            log.warn(`Could not find smartSwitches channel.`, { guildId: guild.id });
             return;
         }
 
@@ -518,14 +474,9 @@ export class DiscordManager {
 
     public async setupGuildSmartAlarmsChannel(guild: discordjs.Guild, update: boolean = true,
         create: boolean = false) {
-        const fn = '[DiscordManager: setupGuildSmartAlarmsChannel]';
-        const logParam = {
-            guildId: guild.id
-        };
-
         const gInstance = gim.getGuildInstance(guild.id) as GuildInstance;
         if (!('smartAlarms' in gInstance.guildChannelIds)) {
-            log.warn(`${fn} Could not find smartAlarms channel.`, logParam);
+            log.warn(`Could not find smartAlarms channel.`, { guildId: guild.id });
             return;
         }
 
@@ -543,14 +494,9 @@ export class DiscordManager {
 
     public async setupGuildStorageMonitorsChannel(guild: discordjs.Guild, update: boolean = true,
         create: boolean = false) {
-        const fn = '[DiscordManager: setupGuildStorageMonitorsChannel]';
-        const logParam = {
-            guildId: guild.id
-        };
-
         const gInstance = gim.getGuildInstance(guild.id) as GuildInstance;
         if (!('storageMonitors' in gInstance.guildChannelIds)) {
-            log.warn(`${fn} Could not find storageMonitors channel.`, logParam);
+            log.warn(`Could not find storageMonitors channel`, { guildId: guild.id });
             return;
         }
 
@@ -569,17 +515,12 @@ export class DiscordManager {
     // TODO! setupGuildTrackersChannel
 
     public logInteraction(interaction: discordjs.Interaction, status: 'Initiated' | 'Completed') {
-        const fn = '[DiscordManager: logInteraction]';
-        const logParam = {
-            guildId: interaction.guildId
-        };
-
         const type = interaction.type;
         const channelId = interaction.channelId;
         const user = interaction.user;
         const interactionId = interaction.id;
 
-        const defaultLogging = `${fn} ${status} - ${discordjs.InteractionType[type]} (${type}), Channel: ` +
+        const defaultLogging = `${status} - ${discordjs.InteractionType[type]} (${type}), Channel: ` +
             `${channelId}, User: ${user.username} (${user.id}), Interaction ID: ${interactionId}`;
 
         let extendedLogging = '';
@@ -675,7 +616,7 @@ export class DiscordManager {
             /* Do nothing for unsupported interaction types. */
         }
 
-        log.info(`${defaultLogging} ${extendedLogging}`, logParam);
+        log.info(`${defaultLogging} ${extendedLogging}`, { guildId: interaction.guildId });
     }
 
     public validPermissions(interaction: discordjs.Interaction, adminRequired: boolean = false): boolean {
@@ -706,11 +647,6 @@ export class DiscordManager {
     public async handleInteractionReply<T extends discordjs.Interaction>(interaction: T, content:
         discordjs.InteractionReplyOptions | discordjs.InteractionEditReplyOptions | discordjs.InteractionUpdateOptions,
         action: 'reply' | 'editReply' | 'update'): Promise<boolean> {
-        const fn = '[DiscordManager: handleInteractionReply]';
-        const logParam = {
-            guildId: interaction.guildId
-        };
-
         try {
             if (interaction.isCommand() && action === 'reply') {
                 await (interaction as discordjs.CommandInteraction).reply(
@@ -735,7 +671,7 @@ export class DiscordManager {
             return true;
         }
         catch (error) {
-            log.warn(`${fn} Failed to handle interaction reply '${action}', ${error}.`, logParam);
+            log.warn(`Failed to handle interaction reply '${action}', ${error}.`, { guildId: interaction.guildId });
         }
 
         return false;
@@ -744,7 +680,6 @@ export class DiscordManager {
     public async handleMessage<T extends discordjs.Message | discordjs.TextChannel | discordjs.User>(medium: T, content:
         discordjs.MessageCreateOptions | discordjs.MessageEditOptions | discordjs.MessageReplyOptions,
         action: 'send' | 'edit' | 'reply'): Promise<discordjs.Message | undefined> {
-        const fn = '[DiscordManager: handleMessage]';
         const logParam: { [key: string]: string } = {};
 
         try {
@@ -760,7 +695,7 @@ export class DiscordManager {
             }
         }
         catch (error) {
-            log.warn(`${fn} Failed to handle message '${action}', ${error}`, logParam);
+            log.warn(`Failed to handle message '${action}', ${error}`, logParam);
         }
 
         return undefined;
@@ -770,7 +705,6 @@ export class DiscordManager {
         discordjs.MessageCreateOptions | discordjs.MessageEditOptions, channelId: types.ChannelId | null,
         messageId: types.MessageId | null = null, interaction: discordjs.Interaction | null = null):
         Promise<discordjs.Message | undefined> {
-        const fn = '[DiscordManager: sendUpdateMessage]';
         if (interaction) {
             await this.handleInteractionReply(interaction, content as discordjs.InteractionUpdateOptions, 'update');
             return undefined;
@@ -788,7 +722,7 @@ export class DiscordManager {
             return await this.handleMessage(channel, content as discordjs.MessageCreateOptions, 'send');
         }
         else {
-            log.warn(`${fn} Could not get channel '${channelId}'.`);
+            log.warn(`Could not get channel '${channelId}'.`, { guildId: guildId });
             return undefined;
         }
     }
@@ -801,11 +735,6 @@ export class DiscordManager {
     }
 
     public async getGuild(guildId: types.GuildId): Promise<discordjs.Guild | undefined> {
-        const fn = '[DiscordManager: getGuild]';
-        const logParam = {
-            guildId: guildId
-        };
-
         try {
             if (!config.discord.useCache) {
                 await this.client.guilds.fetch();
@@ -813,29 +742,24 @@ export class DiscordManager {
 
             const guild = this.client.guilds.cache.get(guildId);
             if (!guild) {
-                log.warn(`${fn} Guild not found.`, logParam);
+                log.warn(`Guild not found.`, { guildId: guildId });
                 return undefined;
             }
 
             return guild;
         }
         catch (error) {
-            log.warn(`${fn} Could not fetch guild, ${error}.`, logParam);
+            log.warn(`Could not fetch guild, ${error}.`, { guildId: guildId });
             return undefined;
         }
     }
 
     public async getChannel(guildId: types.GuildId, channelId: types.ChannelId):
         Promise<discordjs.GuildBasedChannel | undefined> {
-        const fn = '[DiscordManager: getChannel]';
-        const logParam = {
-            guildId: guildId
-        };
-
         const guild = await this.getGuild(guildId);
 
         if (!guild) {
-            log.warn(`${fn} Could not find guild.`, logParam);
+            log.warn(`Could not find guild.`, { guildId: guildId });
             return undefined;
         }
 
@@ -846,29 +770,24 @@ export class DiscordManager {
 
             const channel = guild.channels.cache.get(channelId);
             if (!channel) {
-                log.warn(`${fn} Channel not found '${channelId}'.`, logParam);
+                log.warn(`Channel not found '${channelId}'.`, { guildId: guildId });
                 return undefined;
             }
 
             return channel;
         }
         catch (error) {
-            log.warn(`${fn} Could not fetch channel '${channelId}', ${error}.`, logParam);
+            log.warn(`Could not fetch channel '${channelId}', ${error}.`, { guildId: guildId });
             return undefined;
         }
     }
 
     public async getMessage(guildId: types.GuildId, channelId: types.ChannelId, messageId: types.MessageId):
         Promise<discordjs.Message | undefined> {
-        const fn = '[DiscordManager: getMessage]';
-        const logParam = {
-            guildId: guildId
-        };
-
         const channel = await this.getChannel(guildId, channelId);
 
         if (!channel) {
-            log.warn(`${fn} Could not find channel '${channelId}'.`, logParam);
+            log.warn(`Could not find channel '${channelId}'.`, { guildId: guildId });
             return undefined;
         }
 
@@ -876,29 +795,24 @@ export class DiscordManager {
             const message = await (channel as discordjs.TextChannel).messages.fetch(messageId);
 
             if (!message) {
-                log.warn(`${fn} Message not found '${messageId}'.`, logParam);
+                log.warn(`Message not found '${messageId}'.`, { guildId: guildId });
                 return undefined;
             }
 
             return message;
         }
         catch (error) {
-            log.warn(`${fn} Could not fetch message '${messageId}', ${error}`, logParam);
+            log.warn(`Could not fetch message '${messageId}', ${error}`, { guildId: guildId });
             return undefined;
         }
     }
 
     public async getMember(guildId: types.GuildId, memberId: types.UserId):
         Promise<discordjs.GuildMember | undefined> {
-        const fn = '[DiscordManager: getMember]';
-        const logParam = {
-            guildId: guildId
-        };
-
         const guild = await this.getGuild(guildId);
 
         if (!guild) {
-            log.warn(`${fn} Could not find guild.`, logParam);
+            log.warn(`Could not find guild.`, { guildId: guildId });
             return undefined;
         }
 
@@ -906,24 +820,23 @@ export class DiscordManager {
             const member = await guild.members.fetch(memberId);
 
             if (!member) {
-                log.warn(`${fn} Member not found '${memberId}'.`, logParam);
+                log.warn(`Member not found '${memberId}'.`, { guildId: guildId });
                 return undefined;
             }
 
             return member;
         }
         catch (error) {
-            log.warn(`${fn} Could not fetch member '${memberId}', ${error}.`, logParam);
+            log.warn(`Could not fetch member '${memberId}', ${error}.`, { guildId: guildId });
             return undefined;
         }
     }
 
     public async getUser(userId: types.UserId): Promise<discordjs.User | undefined> {
-        const fn = '[DiscordManager: getUser]';
         const user = this.client.users.fetch(userId).catch(() => undefined);
 
         if (!user) {
-            log.warn(`${fn} Could not find user '${userId}'.`);
+            log.warn(`Could not find user '${userId}'.`);
             return undefined;
         }
 
@@ -945,15 +858,10 @@ export class DiscordManager {
 
     public async getRole(guildId: types.GuildId, roleId: types.RoleId):
         Promise<discordjs.Role | undefined> {
-        const fn = '[DiscordManager: getRole]';
-        const logParam = {
-            guildId: guildId
-        };
-
         const guild = await this.getGuild(guildId);
 
         if (!guild) {
-            log.warn(`${fn} Could not find guild.`, logParam);
+            log.warn(`Could not find guild.`, { guildId: guildId });
             return undefined;
         }
 
@@ -961,29 +869,24 @@ export class DiscordManager {
             const role = await guild.roles.fetch(roleId);
 
             if (!role) {
-                log.warn(`${fn} Role not found '${roleId}'.`, logParam);
+                log.warn(`Role not found '${roleId}'.`, { guildId: guildId });
                 return undefined;
             }
 
             return role;
         }
         catch (error) {
-            log.warn(`${fn} Could not fetch role '${roleId}', ${error}.`, logParam);
+            log.warn(`Could not fetch role '${roleId}', ${error}.`, { guildId: guildId });
             return undefined;
         }
     }
 
     public async deleteMessage(guildId: types.GuildId, channelId: types.ChannelId, messageId: types.MessageId):
         Promise<boolean> {
-        const fn = '[DiscordManager: deleteMessage]';
-        const logParam = {
-            guildId: guildId
-        };
-
         const message = await this.getMessage(guildId, channelId, messageId);
 
         if (!message) {
-            log.warn(`${fn} Could not find message '${messageId}'.`, logParam);
+            log.warn(`Could not find message '${messageId}'.`, { guildId: guildId });
             return false;
         }
 
@@ -992,7 +895,7 @@ export class DiscordManager {
             return true;
         }
         catch (error) {
-            log.warn(`${fn} Could not delete message '${messageId}', ${error}.`, logParam);
+            log.warn(`Could not delete message '${messageId}', ${error}.`, { guildId: guildId });
             return false;
         }
     }
@@ -1001,15 +904,10 @@ export class DiscordManager {
         type: discordjs.ChannelType.GuildText | discordjs.ChannelType.GuildVoice | discordjs.ChannelType.GuildCategory,
         permissionOverwrites: discordjs.OverwriteResolvable[] = [], parentId: string | undefined = undefined):
         Promise<discordjs.GuildChannel | undefined> {
-        const fn = '[DiscordManager: createChannel]';
-        const logParam = {
-            guildId: guildId
-        };
-
         const guild = await this.getGuild(guildId);
 
         if (!guild) {
-            log.warn(`${fn} Could not find guild.`, logParam);
+            log.warn(`Could not find guild.`, { guildId: guildId });
             return undefined;
         }
 
@@ -1021,26 +919,19 @@ export class DiscordManager {
                 parent: type !== discordjs.ChannelType.GuildCategory ? parentId : undefined
             });
 
-            log.debug(`${fn} Created ${discordjs.ChannelType[type]} '${name}'.`, logParam);
-
             return channel as discordjs.TextChannel | discordjs.VoiceChannel | discordjs.CategoryChannel;
         }
         catch (error) {
-            log.warn(`${fn} Could not create channel '${name}', ${error}.`, logParam);
+            log.warn(`Could not create channel '${name}', ${error}.`, { guildId: guildId });
             return undefined;
         }
     }
 
     public async deleteChannel(guildId: types.GuildId, channelId: types.ChannelId): Promise<boolean> {
-        const fn = '[DiscordManager: deleteChannel]';
-        const logParam = {
-            guildId: guildId
-        };
-
         const channel = await this.getChannel(guildId, channelId);
 
         if (!channel) {
-            log.warn(`${fn} Could not find channel '${channelId}'.`, logParam);
+            log.warn(`Could not find channel '${channelId}'.`, { guildId: guildId });
             return false;
         }
 
@@ -1049,23 +940,18 @@ export class DiscordManager {
             return true;
         }
         catch (error) {
-            log.warn(`${fn} Could not delete channel '${channelId}', ${error}.`, logParam);
+            log.warn(`Could not delete channel '${channelId}', ${error}.`, { guildId: guildId });
             return false;
         }
     }
 
     public async setChannelPermissions(guildId: types.GuildId, channelId: types.ChannelId,
         channelName: keyof GuildChannelIds): Promise<boolean> {
-        const fn = '[DiscordManager: setChannelPermissions]';
-        const logParam = {
-            guildId: guildId
-        };
-
         const guild = await this.getGuild(guildId);
         const channel = await this.getChannel(guildId, channelId);
 
         if (!guild || !channel) {
-            log.warn(`${fn} Could not find guild or channel '${channelId}'.`, logParam);
+            log.warn(`Could not find guild or channel '${channelId}'.`, { guildId: guildId });
             return false;
         }
 
@@ -1077,15 +963,10 @@ export class DiscordManager {
     }
 
     public async renameChannel(guildId: types.GuildId, channelId: types.ChannelId, newName: string): Promise<boolean> {
-        const fn = '[DiscordManager: renameChannel]';
-        const logParam = {
-            guildId: guildId
-        };
-
         const channel = await this.getChannel(guildId, channelId);
 
         if (!channel) {
-            log.warn(`${fn} Could not find channel '${channelId}'.`, logParam);
+            log.warn(`Could not find channel '${channelId}'.`, { guildId: guildId });
             return false;
         }
 
@@ -1096,15 +977,10 @@ export class DiscordManager {
 
     public async removeChannelRolePermissions(guildId: types.GuildId, channelId: types.ChannelId, roleId: types.RoleId):
         Promise<boolean> {
-        const fn = '[DiscordManager: removeChannelRolePermissions]';
-        const logParam = {
-            guildId: guildId
-        };
-
         const channel = await this.getChannel(guildId, channelId);
 
         if (!channel) {
-            log.warn(`${fn} Could not find channel '${channelId}'.`, logParam);
+            log.warn(`Could not find channel '${channelId}'.`, { guildId: guildId });
             return false;
         }
 

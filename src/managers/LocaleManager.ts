@@ -67,8 +67,6 @@ export class LocaleManager {
     private intl: Partial<Record<Languages, formatjs.IntlShape<string>>>;
 
     constructor(defaultLanguage: Languages = Languages.ENGLISH) {
-        const fn = '[LocaleManager: Init]';
-        log.info(`${fn} Default language '${defaultLanguage}'.`);
         this.defaultLanguage = defaultLanguage;
         this.locales = {};
         this.intl = {};
@@ -76,14 +74,13 @@ export class LocaleManager {
         /* Check if defaultLanguage exist */
         const defaultLanguagePath = path.join(__dirname, '..', 'languages', `${defaultLanguage}.json`);
         if (!fs.existsSync(defaultLanguagePath)) {
-            throw new Error(`${fn} Language file for '${defaultLanguage}' does not exist. Exiting...`);
+            throw new Error(`Language file for '${defaultLanguage}' does not exist. Exiting...`);
         }
 
         this.setup();
     }
 
     private setup() {
-        const fn = '[LocaleManager: setup]'
         const languageFilesPath = path.join(__dirname, '..', 'languages');
         const fileList = fs.readdirSync(languageFilesPath);
 
@@ -94,7 +91,7 @@ export class LocaleManager {
         for (const file of fileList) {
             const language = file.replace('.json', '') as Languages;
             if (!allLanguages.includes(language)) {
-                throw new Error(`${fn} Language '${language}' is not part of supported languages. Exiting...`);
+                throw new Error(`Language '${language}' is not part of supported languages. Exiting...`);
             }
 
             foundLanguageFiles.push(language);
@@ -107,7 +104,7 @@ export class LocaleManager {
         const missingLanguages = allLanguages.filter(language => !foundLanguageFiles.includes(language));
 
         if (missingLanguages.length > 0) {
-            throw new Error(`${fn} Missing language files for the following languages: ` +
+            throw new Error(`Missing language files for the following languages: ` +
                 `${missingLanguages.join(', ')}. Exiting...`);
         }
 
@@ -126,11 +123,10 @@ export class LocaleManager {
     }
 
     public getIntl(locale: Languages | null, phraseKey: string, parameters: Record<string, string> = {}): string {
-        const fn = '[LocaleManager: getIntl]';
 
         locale = locale ?? this.defaultLanguage;
         if (!this.locales[locale]) {
-            throw new Error(`${fn} Unsupported locale '${locale}'.`);
+            throw new Error(`Unsupported locale '${locale}'.`);
         }
 
         return this.intl[locale]!.formatMessage({

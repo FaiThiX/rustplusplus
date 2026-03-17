@@ -21,6 +21,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as rp from 'rustplus-ts'
+import * as winston from 'winston';
 
 import { log } from '../../index';
 import * as types from '../utils/types';
@@ -365,9 +366,6 @@ export class GuildInstanceManager {
     private eventNotificationSettingsTemplate: EventNotificationSettings | null;
 
     constructor(guildInstanceFilesPath: string, templateFilesPath: string) {
-        const fn = '[GuildInstanceManager: Init]';
-        log.info(`${fn} GuildInstance files path '${guildInstanceFilesPath}'.`);
-
         this.guildInstanceFilesPath = guildInstanceFilesPath;
         this.templateFilesPath = templateFilesPath;
         this.guildInstanceMap = {};
@@ -375,14 +373,13 @@ export class GuildInstanceManager {
         this.eventNotificationSettingsTemplate = this.readEventNotificationSettingsTemplate();
 
         if (this.generalSettingsTemplate === null || this.eventNotificationSettingsTemplate === null) {
-            throw new Error(`${fn} General/Notification settings template could not be read. Exiting...`);
+            throw new Error(`General/Notification settings template could not be read. Exiting...`);
         }
 
         this.loadAllGuildInstances();
     }
 
     private loadAllGuildInstances(): void {
-        const fn = '[GuildInstanceManager: loadAllGuildInstances]';
         const guildInstanceFiles = fs.readdirSync(this.guildInstanceFilesPath);
 
         guildInstanceFiles.forEach((file) => {
@@ -390,7 +387,7 @@ export class GuildInstanceManager {
             const gInstance = this.readGuildInstanceFile(guildId);
 
             if (typeof gInstance === 'number') {
-                throw new Error(`${fn} Failed to load GuildInstance file '${file}'. Exiting...`);
+                throw new Error(`Failed to load GuildInstance file '${file}'. Exiting...`);
             }
 
             this.guildInstanceMap[guildId] = gInstance;
@@ -398,9 +395,6 @@ export class GuildInstanceManager {
     }
 
     private readGeneralSettingsTemplate(): GeneralSettings | null {
-        const fn = '[GuildInstanceManager: readGeneralSettingsTemplate]';
-        log.debug(`${fn} Reading general settings template.`);
-
         const templateFilePath = path.join(this.templateFilesPath, 'generalSettingsTemplate.json');
 
         let templateFileContent: string;
@@ -408,18 +402,14 @@ export class GuildInstanceManager {
             templateFileContent = fs.readFileSync(templateFilePath, 'utf8');
         }
         catch (error) {
-            log.warn(`${fn} Failed to read general settings template file '${templateFilePath}', ${error}`);
+            log.warn(`Failed to read general settings template file '${templateFilePath}', ${error}`);
             return null;
         }
 
-        log.debug(`${fn} Template was successfully read.`);
         return JSON.parse(templateFileContent) as GeneralSettings;
     }
 
     private readEventNotificationSettingsTemplate(): EventNotificationSettings | null {
-        const fn = '[GuildInstanceManager: readEventNotificationSettingsTemplate]';
-        log.debug(`${fn} Reading event notification settings template.`);
-
         const templateFilePath = path.join(this.templateFilesPath, 'eventNotificationSettingsTemplate.json');
 
         let templateFileContent: string;
@@ -427,25 +417,18 @@ export class GuildInstanceManager {
             templateFileContent = fs.readFileSync(templateFilePath, 'utf8');
         }
         catch (error) {
-            log.warn(`${fn} Failed to read event notification settings template file '${templateFilePath}', ` +
-                `${error}`);
+            log.warn(`Failed to read event notification settings template file '${templateFilePath}', ${error}`);
             return null;
         }
 
-        log.debug(`${fn} Template was successfully read.`);
         return JSON.parse(templateFileContent) as EventNotificationSettings;
     }
 
     private readGuildInstanceFile(guildId: types.GuildId): GuildInstance | ReadError {
-        const fn = '[GuildInstanceManager: readGuildInstanceFile]';
-        const logParam = { guildId: guildId };
-
-        log.debug(`${fn} Reading GuildInstance file.`, logParam);
-
         const guildInstanceFilePath = path.join(this.guildInstanceFilesPath, `${guildId}.json`);
 
         if (!fs.existsSync(guildInstanceFilePath)) {
-            log.warn(`${fn} GuildInstance file could not be found.`, logParam);
+            log.warn(`GuildInstance file could not be found.`, { guildId: guildId });
             return ReadError.NotFound;
         }
 
@@ -454,7 +437,7 @@ export class GuildInstanceManager {
             guildInstanceFileContent = fs.readFileSync(guildInstanceFilePath, 'utf8');
         }
         catch (error) {
-            log.warn(`${fn} Failed to read GuildInstance file '${guildInstanceFilePath}', ${error}`, logParam);
+            log.warn(`Failed to read GuildInstance file '${guildInstanceFilePath}', ${error}`, { guildId: guildId });
             return ReadError.ReadFailed;
         }
 
@@ -463,43 +446,35 @@ export class GuildInstanceManager {
             guildInstanceFileContentParsed = JSON.parse(guildInstanceFileContent);
         }
         catch (error) {
-            log.warn(`${fn} GuildInstance file failed parse. Data: ` +
-                `${guildInstanceFileContent}, ${error}`, logParam);
+            log.warn(`GuildInstance file failed parsing. Data: ${guildInstanceFileContent}, ${error}`,
+                { guildId: guildId });
             return ReadError.ParseFailed;
         }
 
         if (!isValidGuildInstance(guildInstanceFileContentParsed)) {
-            log.warn(`${fn} GuildInstance file have invalid format. Data: ` +
-                `${JSON.stringify(guildInstanceFileContentParsed)}`, logParam);
+            log.warn(`GuildInstance file have invalid format. Data: ${JSON.stringify(guildInstanceFileContentParsed)}`,
+                { guildId: guildId });
             return ReadError.InvalidFormat;
         }
 
         if (guildInstanceFileContentParsed.version !== VERSION) {
-            log.warn(`${fn} GuildInstance file have invalid version. ` +
-                `Expected: ${VERSION}, Actual: ${guildInstanceFileContentParsed.version}`, logParam);
+            log.warn(`GuildInstance file have invalid version. Expected: ${VERSION}, ` +
+                `Actual: ${guildInstanceFileContentParsed.version}`, { guildId: guildId });
             return ReadError.InvalidVersion;
         }
 
-        log.debug(`${fn} GuildInstance file was successfully read.`, logParam);
         return guildInstanceFileContentParsed as GuildInstance;
     }
 
     private writeGuildInstanceFile(guildId: types.GuildId, gInstance: GuildInstance): WriteError {
-        const fn = '[GuildInstanceManager: writeGuildInstanceFile]';
-        const logParam = {
-            guildId: guildId
-        };
-
-        log.debug(`${fn} Writing guildInstance to file.`, logParam);
-
         if (!isValidGuildInstance(gInstance)) {
-            log.warn(`${fn} GuildInstance have invalid format. Data: ${JSON.stringify(gInstance)}`, logParam);
+            log.warn(`GuildInstance have invalid format. Data: ${JSON.stringify(gInstance)}`, { guildId: guildId });
             return WriteError.InvalidFormat;
         }
 
         if (gInstance.version !== VERSION) {
-            log.warn(`${fn} GuildInstance have invalid version. Expected: ${VERSION}, ` +
-                `Actual: ${gInstance.version}`, logParam);
+            log.warn(`GuildInstance have invalid version. Expected: ${VERSION}, ` +
+                `Actual: ${gInstance.version}`, { guildId: guildId });
             return WriteError.InvalidVersion;
         }
 
@@ -510,25 +485,18 @@ export class GuildInstanceManager {
             fs.writeFileSync(guildInstanceFilePath, guildInstanceString);
         }
         catch (error) {
-            log.warn(`${fn} Failed to write GuildInstance file '${guildInstanceFilePath}', ${error}`, logParam);
+            log.warn(`Failed to write GuildInstance file '${guildInstanceFilePath}', ${error}`, { guildId: guildId });
             return WriteError.WriteFailed;
         }
 
-        log.debug(`${fn} GuildInstance was successfully written.`, logParam);
         return WriteError.NoError;
     }
 
     private deleteGuildInstanceFile(guildId: types.GuildId): boolean {
-        const fn = '[GuildInstanceManager: deleteGuildInstanceFile]';
-        const logParam = {
-            guildId: guildId
-        };
-
-        log.debug(`${fn} Delete GuildInstance file.`, logParam);
         const guildInstanceFilePath = path.join(this.guildInstanceFilesPath, `${guildId}.json`);
 
         if (!fs.existsSync(guildInstanceFilePath)) {
-            log.warn(`${fn} Could not find GuildInstance file '${guildInstanceFilePath}'.`, logParam);
+            log.warn(`Could not find GuildInstance file '${guildInstanceFilePath}'.`, { guildId: guildId });
             return false;
         }
 
@@ -536,11 +504,11 @@ export class GuildInstanceManager {
             fs.unlinkSync(guildInstanceFilePath);
         }
         catch (error) {
-            log.warn(`${fn} Failed to delete GuildInstance file '${guildInstanceFilePath}', ${error}`, logParam);
+            log.warn(`Failed to delete GuildInstance file '${guildInstanceFilePath}', ${error}`, { guildId: guildId });
             return false;
         }
 
-        log.debug(`${fn} GuildInstance file '${guildInstanceFilePath}' was successfully deleted.`, logParam);
+        log.info(`GuildInstance file deleted successfully.`, { guildId: guildId });
         return true;
     }
 
@@ -648,20 +616,15 @@ export class GuildInstanceManager {
     }
 
     public updateGuildInstance(guildId: types.GuildId): boolean {
-        const fn = '[GuildInstanceManager: updateGuildInstance]';
-        const logParam = {
-            guildId: guildId
-        };
-
         const gInstance = this.guildInstanceMap[guildId];
         if (!gInstance) {
-            log.warn(`${fn} GuildInstance could not be found.`, logParam);
+            log.warn(`GuildInstance could not be found.`, { guildId: guildId });
             return false;
         }
 
         const result = this.writeGuildInstanceFile(guildId, gInstance);
         if (result !== WriteError.NoError) {
-            log.warn(`${fn} Failed to update GuildInstance file.`, logParam);
+            log.warn(`Failed to update GuildInstance file.`, { guildId: guildId });
             return false;
         }
 
@@ -678,21 +641,16 @@ export class GuildInstanceManager {
     }
 
     public addNewGuildInstance(guildId: types.GuildId): boolean {
-        const fn = '[GuildInstanceManager: addNewGuildInstance]';
-        const logParam = {
-            guildId: guildId
-        };
-
         const gInstance = this.getNewEmptyGuildInstance(guildId);
 
         if (guildId in this.guildInstanceMap && this.guildInstanceMap[guildId] !== null) {
-            log.warn(`${fn} GuildInstance is already present.`, logParam);
+            log.warn(`GuildInstance is already present.`, { guildId: guildId });
             return false;
         }
 
         const result = this.writeGuildInstanceFile(guildId, gInstance);
         if (result !== WriteError.NoError) {
-            log.warn(`${fn} Failed to write new GuildInstance file.`, logParam);
+            log.warn(`Failed to write new GuildInstance file.`, { guildId: guildId });
             return false;
         }
 
