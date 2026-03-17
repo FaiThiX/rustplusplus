@@ -25,7 +25,7 @@ import * as discordMessages from '../discordUtils/discordMessages';
 import { DiscordManager } from '../managers/discordManager';
 import * as types from '../utils/types';
 import { Languages } from '../managers/LocaleManager';
-import { GuildChannelIds, GuildInstance } from '../managers/guildInstanceManager';
+import { GuildChannelIds, GuildInstance, SettingsMessages } from '../managers/guildInstanceManager';
 
 const channelChoices = [
     'category',
@@ -68,26 +68,22 @@ export default {
     },
 
     async execute(dm: DiscordManager, interaction: discordjs.ChatInputCommandInteraction): Promise<boolean> {
-        const fn = '[SlashCommand: reset]';
-        const logParam = {
-            guildId: interaction.guildId
-        };
-
+        const guildId = interaction.guildId as types.GuildId;
         const id = `Interaction ID: ${interaction.id} -`
         await interaction.deferReply({ flags: discordjs.MessageFlags.Ephemeral });
 
         if (!interaction.guild) {
             await discordMessages.sendDefaultMessage(dm, interaction, 'errorTitleUnknownError',
                 'errorDescUnknownError');
-            log.warn(`${fn} ${id} Unknown Error: interaction.guild is not valid.`, logParam);
+            log.warn(`${id} Unknown Error: interaction.guild is not valid.`, { guildId: guildId });
             return false;
         }
 
         if (!dm.validPermissions(interaction, true)) {
             await discordMessages.sendDefaultMessage(dm, interaction, 'errorTitleMissingPermission',
                 'errorDescMissingPermission');
-            log.warn(`${fn} ${id} ${lm.getIntl(config.general.language, 'errorDescMissingPermission')}`,
-                logParam);
+            log.warn(`${id} ${lm.getIntl(config.general.language, 'errorDescMissingPermission')}`,
+                { guildId: guildId });
             return false;
         }
 
@@ -107,7 +103,8 @@ export default {
                 }
                 await discordMessages.sendDefaultMessage(dm, interaction, 'errorTitleInvalidSubcommand',
                     'errorDescInvalidSubcommand', parameters);
-                log.warn(`${fn} ${id} ${lm.getIntl(config.general.language, 'errorDescInvalidSubcommand')}`, logParam);
+                log.warn(`${id} ${lm.getIntl(config.general.language, 'errorDescInvalidSubcommand')}`,
+                    { guildId: guildId });
                 result = false;
             } break;
         }
@@ -118,12 +115,7 @@ export default {
 
 async function executeMissingChannels(dm: DiscordManager, interaction: discordjs.ChatInputCommandInteraction):
     Promise<boolean> {
-    const fn = '[SlashCommand: reset: missing_channels]';
     const guildId = interaction.guildId as types.GuildId;
-    const logParam = {
-        guildId: guildId
-    };
-
     const id = `Interaction ID: ${interaction.id} -`
 
     const gInstance = gim.getGuildInstance(guildId) as GuildInstance;
@@ -137,8 +129,20 @@ async function executeMissingChannels(dm: DiscordManager, interaction: discordjs
         }
 
         resetChannels.push(channelName);
-        await dm.setupGuildChannel(interaction.guild as discordjs.Guild, channelName as keyof GuildChannelIds, true);
-        await setupChannel(dm, interaction, channelName as keyof GuildChannelIds);
+
+        if (channelName === 'category') {
+            await dm.setupGuildCategory(interaction.guild as discordjs.Guild, true);
+        }
+        else {
+            await dm.setupGuildChannel(interaction.guild as discordjs.Guild,
+                channelName as keyof GuildChannelIds, true);
+            gim.updateGuildInstance(interaction.guildId as types.GuildId);
+            await setupChannel(dm, interaction, channelName as keyof GuildChannelIds);
+        }
+    }
+
+    if (resetChannels.includes('category')) {
+        await dm.setupGuildChannels(interaction.guild as discordjs.Guild, true);
     }
 
     const parameters = {
@@ -146,20 +150,15 @@ async function executeMissingChannels(dm: DiscordManager, interaction: discordjs
     };
     await discordMessages.sendDefaultMessage(dm, interaction, 'slashCommandSuccessTitleResetMissingChannels',
         'slashCommandSuccessDescResetMissingChannels', parameters);
-    log.info(`${fn} ${id} ${lm.getIntl(config.general.language, 'slashCommandSuccessDescResetMissingChannels',
-        parameters)}`, logParam);
+    log.info(`${id} ${lm.getIntl(config.general.language, 'slashCommandSuccessDescResetMissingChannels',
+        parameters)}`, { guildId: guildId });
 
     return true;
 }
 
 async function executeChannel(dm: DiscordManager, interaction: discordjs.ChatInputCommandInteraction):
     Promise<boolean> {
-    const fn = '[SlashCommand: reset: channel]';
     const guildId = interaction.guildId as types.GuildId;
-    const logParam = {
-        guildId: guildId
-    };
-
     const id = `Interaction ID: ${interaction.id} -`
     const channelName = interaction.options.getString('channel', true) as keyof GuildChannelIds;
 
@@ -175,16 +174,23 @@ async function executeChannel(dm: DiscordManager, interaction: discordjs.ChatInp
         gim.updateGuildInstance(guildId);
     }
 
-    await dm.setupGuildChannel(interaction.guild as discordjs.Guild, channelName, true);
-    await setupChannel(dm, interaction, channelName);
+    if (channelName === 'category') {
+        await dm.setupGuildCategory(interaction.guild as discordjs.Guild, true);
+        await dm.setupGuildChannels(interaction.guild as discordjs.Guild, true);
+    }
+    else {
+        await dm.setupGuildChannel(interaction.guild as discordjs.Guild, channelName, true);
+        gim.updateGuildInstance(interaction.guildId as types.GuildId);
+        await setupChannel(dm, interaction, channelName);
+    }
 
     const parameters = {
         channel: channelName
     };
     await discordMessages.sendDefaultMessage(dm, interaction, 'slashCommandSuccessTitleResetChannel',
         'slashCommandSuccessDescResetChannel', parameters);
-    log.info(`${fn} ${id} ${lm.getIntl(config.general.language, 'slashCommandSuccessDescResetChannel',
-        parameters)}`, logParam);
+    log.info(`${id} ${lm.getIntl(config.general.language, 'slashCommandSuccessDescResetChannel',
+        parameters)}`, { guildId: guildId });
 
     return true;
 }
@@ -192,8 +198,14 @@ async function executeChannel(dm: DiscordManager, interaction: discordjs.ChatInp
 async function setupChannel(dm: DiscordManager, interaction: discordjs.ChatInputCommandInteraction,
     channelName: keyof GuildChannelIds) {
     const guild = interaction.guild as discordjs.Guild;
+    const gInstance = gim.getGuildInstance(guild.id) as GuildInstance;
 
     if (channelName === 'settings') {
+        (Object.keys(gInstance.settingsMessages) as (keyof SettingsMessages)[]).forEach((key) => {
+            gInstance.settingsMessages[key] = null;
+        });
+        gim.updateGuildInstance(guild.id);
+
         await dm.setupGuildSettingsChannel(guild, true, true);
     }
     else if (channelName === 'servers') {
