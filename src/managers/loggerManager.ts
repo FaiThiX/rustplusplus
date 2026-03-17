@@ -40,29 +40,14 @@ export function createLogger(logFilePath: string): winston.Logger {
     /* Custom format to include additional metadata */
     const customFormatConsole = winston.format.combine(
         winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
-        winston.format.printf(({ timestamp, level, message, ...metadata }) => {
+        winston.format.printf(({ timestamp, level, message, ...meta }) => {
             const cTimestamp = `${timestamp} `.green;
             const cLevel = `${level[colorizeLevel(level) as keyof string]} `;
             const cMessage = `${message} `.yellow;
-            const cGuildId = metadata.guildId ? `${metadata.guildId} `.cyan : '';
-            const cServerId = metadata.serverId ? `${metadata.serverId} `.white : '';
-            const cServerName = metadata.serverName ? `${metadata.serverName} `.white : '';
+            const cGuildId = meta.guildId ? `${meta.guildId} `.cyan : '';
+            const cServerId = meta.serverId ? `${meta.serverId} `.white : '';
 
-            return `${cTimestamp}${cLevel}${cGuildId}${cServerId}${cServerName}${cMessage}`;
-        })
-    );
-
-    const customFormatFile = winston.format.combine(
-        winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
-        winston.format.printf(({ timestamp, level, message, ...metadata }) => {
-            const cTimestamp = `${timestamp} `;
-            const cLevel = `${level} `;
-            const cMessage = `${message} `;
-            const cGuildId = metadata.guildId ? `${metadata.guildId} ` : '';
-            const cServerId = metadata.serverId ? `${metadata.serverId} `.white : '';
-            const cServerName = metadata.serverName ? `${metadata.serverName} ` : '';
-
-            return `${cTimestamp}${cLevel}${cGuildId}${cServerId}${cServerName}${cMessage}`;
+            return `${cTimestamp}${cLevel}${cGuildId}${cServerId}${cMessage}`;
         })
     );
 
@@ -80,7 +65,10 @@ export function createLogger(logFilePath: string): winston.Logger {
                 maxsize: 10 * 1024 * 1024, /* 10MB in bytes */
                 maxFiles: 5, /* Keep the last 5 log files */
                 tailable: true, /* Ensure the log file names follow the pattern logfile.log, logfile.log.1 etc... */
-                format: customFormatFile,
+                format: winston.format.combine(
+                    winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+                    winston.format.json()
+                ),
                 level: 'debug'
             })
         ]
