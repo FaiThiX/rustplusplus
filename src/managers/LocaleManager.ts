@@ -23,8 +23,6 @@ import * as formatjs from '@formatjs/intl';
 import * as fs from 'fs';
 import * as path from 'path';
 
-import { log } from '../../index';
-
 export type Locales = Partial<Record<Languages, LocaleData>>;
 
 export interface LocaleData {

@@ -21,7 +21,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as rp from 'rustplus-ts'
-import * as winston from 'winston';
 
 import { log } from '../../index';
 import * as types from '../utils/types';
