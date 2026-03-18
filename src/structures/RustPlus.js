@@ -244,11 +244,58 @@ class RustPlus extends RustPlusLib {
             });
         }
 
+        const cargoShipEgressAfterHarbor1Timers = [];
+        for (const [id, timer] of Object.entries(this.mapMarkers.cargoShipEgressAfterHarbor1Timers)) {
+            const endAtMs = this.getTimerEndAtMs(timer);
+            if (endAtMs === null) continue;
+
+            const parsedId = parseInt(id);
+            if (!Number.isInteger(parsedId)) continue;
+            const cargoShip = this.mapMarkers.getMarkerByTypeId(this.mapMarkers.types.CargoShip, parsedId);
+
+            cargoShipEgressAfterHarbor1Timers.push({
+                id: parsedId,
+                endAtMs: endAtMs,
+                x: cargoShip ? cargoShip.x : null,
+                y: cargoShip ? cargoShip.y : null
+            });
+        }
+
+        const cargoShipEgressAfterHarbor2Timers = [];
+        for (const [id, timer] of Object.entries(this.mapMarkers.cargoShipEgressAfterHarbor2Timers)) {
+            const endAtMs = this.getTimerEndAtMs(timer);
+            if (endAtMs === null) continue;
+
+            const parsedId = parseInt(id);
+            if (!Number.isInteger(parsedId)) continue;
+            const cargoShip = this.mapMarkers.getMarkerByTypeId(this.mapMarkers.types.CargoShip, parsedId);
+
+            cargoShipEgressAfterHarbor2Timers.push({
+                id: parsedId,
+                endAtMs: endAtMs,
+                x: cargoShip ? cargoShip.x : null,
+                y: cargoShip ? cargoShip.y : null
+            });
+        }
+
         const cargoShipsState = this.mapMarkers.cargoShips.map(cargoShip => ({
             id: cargoShip.id,
             x: cargoShip.x,
             y: cargoShip.y,
-            onItsWayOut: cargoShip.onItsWayOut === true
+            onItsWayOut: cargoShip.onItsWayOut === true,
+            cargoMeta: this.mapMarkers.cargoShipMetaData[cargoShip.id] ? {
+                lockedCrateSpawnCounter:
+                    this.mapMarkers.cargoShipMetaData[cargoShip.id].lockedCrateSpawnCounter,
+                harborsDocked: this.mapMarkers.cargoShipMetaData[cargoShip.id].harborsDocked,
+                dockingStatus: this.mapMarkers.cargoShipMetaData[cargoShip.id].dockingStatus,
+                isLeaving: this.mapMarkers.cargoShipMetaData[cargoShip.id].isLeaving === true,
+                prevPoint: this.mapMarkers.cargoShipMetaData[cargoShip.id].prevPoint,
+                isDepartureCertain:
+                    this.mapMarkers.cargoShipMetaData[cargoShip.id].isDepartureCertain !== false
+            } : null,
+            lockedCrateSpawnNextAtMs: this.mapMarkers.cargoShipLockedCrateNextSpawnTimes[cargoShip.id] ?? null,
+            undockingNotificationEndAtMs:
+                this.mapMarkers.cargoShipUndockingNotificationEndTimes[cargoShip.id] ?? null
         }));
 
         return {
@@ -268,6 +315,8 @@ class RustPlus extends RustPlusLib {
             crateSmallOilRigUnlockAtMs: this.getTimerEndAtMs(this.mapMarkers.crateSmallOilRigTimer),
             crateLargeOilRigUnlockAtMs: this.getTimerEndAtMs(this.mapMarkers.crateLargeOilRigTimer),
             cargoShipEgressTimers: cargoShipEgressTimers,
+            cargoShipEgressAfterHarbor1Timers: cargoShipEgressAfterHarbor1Timers,
+            cargoShipEgressAfterHarbor2Timers: cargoShipEgressAfterHarbor2Timers,
             cargoShipsState: cargoShipsState
         };
     }
@@ -358,6 +407,62 @@ class RustPlus extends RustPlusLib {
         return null;
     }
 
+    restoreCargoShipTimerCollection(timerDataList, timerCollection, callbackBuilder) {
+        if (!this.mapMarkers || !Array.isArray(timerDataList)) return;
+
+        const reservedCargoShipIds = new Set();
+        for (const timerData of timerDataList) {
+            const cargoShip = this.findCargoShipForPersistedState(timerData, reservedCargoShipIds);
+            if (!cargoShip) continue;
+
+            const endAtMs = Number(timerData.endAtMs);
+            if (!Number.isFinite(endAtMs)) continue;
+            const remainingMs = Math.floor(endAtMs - Date.now());
+            if (remainingMs <= 0) continue;
+
+            const id = cargoShip.id;
+            reservedCargoShipIds.add(id);
+            timerCollection[id] = callbackBuilder(id, remainingMs);
+            timerCollection[id].start();
+        }
+    }
+
+    clearCargoShipRuntimeTimers() {
+        if (!this.mapMarkers) return;
+
+        for (const [id, timer] of Object.entries(this.mapMarkers.cargoShipEgressTimers)) {
+            if (timer) timer.stop();
+            delete this.mapMarkers.cargoShipEgressTimers[id];
+        }
+
+        for (const [id, timer] of Object.entries(this.mapMarkers.cargoShipEgressAfterHarbor1Timers)) {
+            if (timer) timer.stop();
+            delete this.mapMarkers.cargoShipEgressAfterHarbor1Timers[id];
+        }
+
+        for (const [id, timer] of Object.entries(this.mapMarkers.cargoShipEgressAfterHarbor2Timers)) {
+            if (timer) timer.stop();
+            delete this.mapMarkers.cargoShipEgressAfterHarbor2Timers[id];
+        }
+
+        for (const [id, intervalId] of Object.entries(this.mapMarkers.cargoShipLockedCrateSpawnIntervals)) {
+            clearInterval(intervalId);
+            delete this.mapMarkers.cargoShipLockedCrateSpawnIntervals[id];
+        }
+
+        for (const [id, timeoutId] of Object.entries(this.mapMarkers.cargoShipLockedCrateSpawnTimeouts)) {
+            clearTimeout(timeoutId);
+            delete this.mapMarkers.cargoShipLockedCrateSpawnTimeouts[id];
+        }
+        this.mapMarkers.cargoShipLockedCrateNextSpawnTimes = new Object();
+
+        for (const [id, timeoutId] of Object.entries(this.mapMarkers.cargoShipUndockingNotificationTimeouts)) {
+            clearTimeout(timeoutId);
+            delete this.mapMarkers.cargoShipUndockingNotificationTimeouts[id];
+        }
+        this.mapMarkers.cargoShipUndockingNotificationEndTimes = new Object();
+    }
+
     restoreMapMarkersRuntimeState() {
         if (!this.mapMarkers) return;
 
@@ -399,48 +504,94 @@ class RustPlus extends RustPlusLib {
             cargoShip.onItsWayOut = false;
         }
 
-        if (Array.isArray(persisted.cargoShipEgressTimers)) {
-            for (const [id, timer] of Object.entries(this.mapMarkers.cargoShipEgressTimers)) {
-                if (timer) timer.stop();
-                delete this.mapMarkers.cargoShipEgressTimers[id];
-            }
-
-            const reservedCargoShipIds = new Set();
-            for (const timerData of persisted.cargoShipEgressTimers) {
-                const cargoShip = this.findCargoShipForPersistedState(timerData, reservedCargoShipIds);
-                if (!cargoShip) continue;
-
-                const endAtMs = Number(timerData.endAtMs);
-                if (!Number.isFinite(endAtMs)) continue;
-                const remainingMs = Math.floor(endAtMs - Date.now());
-                if (remainingMs <= 0) continue;
-
-                const id = cargoShip.id;
-                reservedCargoShipIds.add(id);
-                cargoShip.onItsWayOut = false;
-
-                this.mapMarkers.cargoShipEgressTimers[id] = new Timer.timer(
-                    this.mapMarkers.notifyCargoShipEgress.bind(this.mapMarkers),
-                    remainingMs,
-                    id
-                );
-                this.mapMarkers.cargoShipEgressTimers[id].start();
-            }
+        this.clearCargoShipRuntimeTimers();
+        this.mapMarkers.cargoShipMetaData = new Object();
+        for (const cargoShip of this.mapMarkers.cargoShips) {
+            this.mapMarkers.getCargoShipMetaData(cargoShip.id);
         }
 
         if (Array.isArray(persisted.cargoShipsState)) {
             const reservedCargoShipIds = new Set();
             for (const cargoData of persisted.cargoShipsState) {
-                if (!cargoData || cargoData.onItsWayOut !== true) continue;
-
                 const cargoShip = this.findCargoShipForPersistedState(cargoData, reservedCargoShipIds);
                 if (!cargoShip) continue;
-                if (this.mapMarkers.cargoShipEgressTimers[cargoShip.id]) continue;
 
-                cargoShip.onItsWayOut = true;
-                reservedCargoShipIds.add(cargoShip.id);
+                const id = cargoShip.id;
+                reservedCargoShipIds.add(id);
+                const meta = this.mapMarkers.getCargoShipMetaData(id);
+                const persistedMeta = cargoData?.cargoMeta;
+
+                meta.lockedCrateSpawnCounter =
+                    Number.isInteger(persistedMeta?.lockedCrateSpawnCounter) ?
+                        persistedMeta.lockedCrateSpawnCounter : 0;
+                meta.harborsDocked = Array.isArray(persistedMeta?.harborsDocked) ?
+                    persistedMeta.harborsDocked.filter(point =>
+                        point &&
+                        Number.isFinite(point.x) &&
+                        Number.isFinite(point.y)).map(point => ({ x: point.x, y: point.y })) : [];
+                meta.dockingStatus =
+                    ['docking', 'docked', 'undocking'].includes(persistedMeta?.dockingStatus) ?
+                        persistedMeta.dockingStatus : null;
+                meta.isLeaving = persistedMeta?.isLeaving === true;
+                meta.prevPoint =
+                    persistedMeta?.prevPoint &&
+                    Number.isFinite(persistedMeta.prevPoint.x) &&
+                    Number.isFinite(persistedMeta.prevPoint.y) ?
+                        { x: persistedMeta.prevPoint.x, y: persistedMeta.prevPoint.y } : null;
+                meta.isDepartureCertain = persistedMeta?.isDepartureCertain !== false;
+
+                cargoShip.onItsWayOut = cargoData.onItsWayOut === true || meta.isLeaving;
+
+                const lockedCrateSpawnNextAtMs = Number(cargoData.lockedCrateSpawnNextAtMs);
+                const lockedCrateRemainingMs = Math.floor(lockedCrateSpawnNextAtMs - Date.now());
+                if (Number.isFinite(lockedCrateSpawnNextAtMs) &&
+                    lockedCrateRemainingMs > 0 &&
+                    meta.lockedCrateSpawnCounter < Constants.CARGO_SHIP_LOOT_ROUNDS) {
+                    this.mapMarkers.scheduleCargoShipLockedCrateSpawnTimeout(id, lockedCrateRemainingMs);
+                }
+
+                const undockingNotificationEndAtMs = Number(cargoData.undockingNotificationEndAtMs);
+                const undockingRemainingMs = Math.floor(undockingNotificationEndAtMs - Date.now());
+                if (Number.isFinite(undockingNotificationEndAtMs) &&
+                    undockingRemainingMs > 0 &&
+                    this.info?.correctedMapSize) {
+                    this.mapMarkers.cargoShipUndockingNotificationEndTimes[id] = undockingNotificationEndAtMs;
+                    this.mapMarkers.cargoShipUndockingNotificationTimeouts[id] = setTimeout(
+                        this.mapMarkers.notifyCargoShipUndockingSoon.bind(
+                            this.mapMarkers, id, this.info.correctedMapSize),
+                        undockingRemainingMs
+                    );
+                }
             }
         }
+
+        this.restoreCargoShipTimerCollection(
+            persisted.cargoShipEgressTimers,
+            this.mapMarkers.cargoShipEgressTimers,
+            (id, remainingMs) => new Timer.timer(
+                this.mapMarkers.notifyCargoShipEgress.bind(this.mapMarkers),
+                remainingMs,
+                id
+            )
+        );
+
+        this.restoreCargoShipTimerCollection(
+            persisted.cargoShipEgressAfterHarbor1Timers,
+            this.mapMarkers.cargoShipEgressAfterHarbor1Timers,
+            (id, remainingMs) => new Timer.timer(
+                this.mapMarkers.notifyCargoShipEgressAfterHarbor.bind(this.mapMarkers, id, true),
+                remainingMs
+            )
+        );
+
+        this.restoreCargoShipTimerCollection(
+            persisted.cargoShipEgressAfterHarbor2Timers,
+            this.mapMarkers.cargoShipEgressAfterHarbor2Timers,
+            (id, remainingMs) => new Timer.timer(
+                this.mapMarkers.notifyCargoShipEgressAfterHarbor.bind(this.mapMarkers, id, false),
+                remainingMs
+            )
+        );
     }
 
     restorePersistentRuntimeState() {
@@ -1030,13 +1181,434 @@ class RustPlus extends RustPlusLib {
         });
     }
 
+    finalizeCargoCommandMessages(messages) {
+        if (!Array.isArray(messages)) {
+            return messages;
+        }
+
+        const filteredMessages = messages.filter(message => typeof (message) === 'string' && message !== '');
+        if (filteredMessages.length === 0) {
+            return null;
+        }
+
+        return filteredMessages.length === 1 ? filteredMessages[0] : filteredMessages;
+    }
+
+    getCargoCommandActiveShips() {
+        if (!this.mapMarkers || !Array.isArray(this.mapMarkers.cargoShips)) {
+            return [];
+        }
+
+        return this.mapMarkers.cargoShips.filter(cargoShip => cargoShip?.location?.string);
+    }
+
+    getCargoCommandRemainingMsFromTimer(timer) {
+        if (!timer || typeof (timer.getStateRunning) !== 'function' || !timer.getStateRunning()) {
+            return null;
+        }
+
+        const remainingMs = timer.getTimeLeft();
+        return Number.isFinite(remainingMs) && remainingMs > 0 ? remainingMs : null;
+    }
+
+    getCargoCommandRemainingMsFromEndAt(endAtMs) {
+        const parsedEndAtMs = Number(endAtMs);
+        if (!Number.isFinite(parsedEndAtMs)) {
+            return null;
+        }
+
+        const remainingMs = Math.floor(parsedEndAtMs - Date.now());
+        return remainingMs > 0 ? remainingMs : null;
+    }
+
+    getCargoCommandStatusText(cargoShip, cargoShipMeta) {
+        if (cargoShip?.onItsWayOut || cargoShipMeta?.isLeaving === true) {
+            return Client.client.intlGet(this.guildId, 'cargoInGameStatusLeaving');
+        }
+
+        switch (cargoShipMeta?.dockingStatus) {
+            case 'docking':
+                return Client.client.intlGet(this.guildId, 'cargoInGameStatusDocking');
+
+            case 'docked':
+                return Client.client.intlGet(this.guildId, 'cargoInGameStatusDocked');
+
+            case 'undocking':
+                return Client.client.intlGet(this.guildId, 'cargoInGameStatusUndocking');
+
+            default:
+                return Client.client.intlGet(this.guildId, 'cargoInGameStatusSailing');
+        }
+    }
+
+    getCargoCommandTimerEntries(id) {
+        if (!this.mapMarkers) {
+            return [];
+        }
+
+        const cargoShip = this.mapMarkers.getMarkerByTypeId(this.mapMarkers.types.CargoShip, id);
+        if (!cargoShip?.location?.string) {
+            return [];
+        }
+
+        const entries = [];
+        const pushEntry = (type, remainingMs) => {
+            if (!Number.isFinite(remainingMs) || remainingMs <= 0) {
+                return;
+            }
+
+            entries.push({
+                cargoShipId: id,
+                location: cargoShip.location.string,
+                remainingMs: remainingMs,
+                type: type
+            });
+        };
+
+        pushEntry('lockedCrate', this.getCargoCommandRemainingMsFromEndAt(
+            this.mapMarkers.cargoShipLockedCrateNextSpawnTimes?.[id]));
+        pushEntry('noLockedCratesLeft', this.getCargoCommandRemainingMsFromTimer(
+            this.mapMarkers.cargoShipEgressAfterHarbor1Timers?.[id]));
+        pushEntry('undockingSoon', this.getCargoCommandRemainingMsFromEndAt(
+            this.mapMarkers.cargoShipUndockingNotificationEndTimes?.[id]));
+        pushEntry('egress', this.getCargoCommandRemainingMsFromTimer(
+            this.mapMarkers.cargoShipEgressTimers?.[id]));
+        pushEntry('leavesMap', this.getCargoCommandRemainingMsFromTimer(
+            this.mapMarkers.cargoShipEgressAfterHarbor2Timers?.[id]));
+
+        entries.sort((entryA, entryB) => entryA.remainingMs - entryB.remainingMs);
+        return entries;
+    }
+
+    getCargoCommandPrimaryTimerEntry(id) {
+        const timerEntries = this.getCargoCommandTimerEntries(id);
+        const priority = ['leavesMap', 'undockingSoon', 'lockedCrate', 'egress'];
+
+        for (const type of priority) {
+            const timerEntry = timerEntries.find(entry => entry.type === type);
+            if (timerEntry) {
+                return timerEntry;
+            }
+        }
+
+        return null;
+    }
+
+    getCargoCommandSummaryLine(cargoShip) {
+        const cargoShipMeta = this.mapMarkers.getCargoShipMetaData(cargoShip.id);
+        const status = this.getCargoCommandStatusText(cargoShip, cargoShipMeta);
+        const primaryTimer = this.getCargoCommandPrimaryTimerEntry(cargoShip.id);
+
+        if (!primaryTimer) {
+            return Client.client.intlGet(this.guildId, 'cargoInGameSummaryNoEta', {
+                location: cargoShip.location.string,
+                status: status
+            });
+        }
+
+        const time = Timer.secondsToFullScale(primaryTimer.remainingMs / 1000);
+
+        switch (primaryTimer.type) {
+            case 'leavesMap':
+                return Client.client.intlGet(this.guildId,
+                    cargoShipMeta?.isDepartureCertain === false ?
+                        'cargoInGameSummaryMayLeaveMap' : 'cargoInGameSummaryLeavesMap',
+                    {
+                        location: cargoShip.location.string,
+                        status: status,
+                        time: time
+                    });
+
+            case 'undockingSoon':
+                return Client.client.intlGet(this.guildId, 'cargoInGameSummaryUndockingSoon', {
+                    location: cargoShip.location.string,
+                    status: status,
+                    time: time
+                });
+
+            case 'lockedCrate':
+                return Client.client.intlGet(this.guildId, 'cargoInGameSummaryLockedCrate', {
+                    location: cargoShip.location.string,
+                    status: status,
+                    time: time
+                });
+
+            case 'egress':
+                return Client.client.intlGet(this.guildId, 'cargoInGameSummaryEgress', {
+                    location: cargoShip.location.string,
+                    status: status,
+                    time: time
+                });
+
+            default:
+                return Client.client.intlGet(this.guildId, 'cargoInGameSummaryNoEta', {
+                    location: cargoShip.location.string,
+                    status: status
+                });
+        }
+    }
+
+    getCargoCommandHarborStatusLine(cargoShipMeta) {
+        const totalHarbors = this.mapMarkers.getCargoHarbors().length;
+        if (totalHarbors === 0) {
+            return Client.client.intlGet(this.guildId, 'cargoInGameHarborsNone');
+        }
+
+        const visitedHarbors = Array.isArray(cargoShipMeta?.harborsDocked) ?
+            Math.min(cargoShipMeta.harborsDocked.length, totalHarbors) : 0;
+
+        return Client.client.intlGet(this.guildId, 'cargoInGameHarborsVisited', {
+            visited: visitedHarbors,
+            total: totalHarbors
+        });
+    }
+
+    getCargoCommandLockedCrateStatusLine(id, cargoShipMeta) {
+        const lockedCrateRemainingMs = this.getCargoCommandRemainingMsFromEndAt(
+            this.mapMarkers.cargoShipLockedCrateNextSpawnTimes?.[id]);
+        if (lockedCrateRemainingMs !== null) {
+            return Client.client.intlGet(this.guildId, 'cargoInGameLockedCrateNext', {
+                time: Timer.secondsToFullScale(lockedCrateRemainingMs / 1000)
+            });
+        }
+
+        const noLockedCratesLeftRemainingMs = this.getCargoCommandRemainingMsFromTimer(
+            this.mapMarkers.cargoShipEgressAfterHarbor1Timers?.[id]);
+        if (noLockedCratesLeftRemainingMs !== null) {
+            return Client.client.intlGet(this.guildId, 'cargoInGameLockedCrateNoCratesLeftIn', {
+                time: Timer.secondsToFullScale(noLockedCratesLeftRemainingMs / 1000)
+            });
+        }
+
+        const cargoLeavesMapRemainingMs = this.getCargoCommandRemainingMsFromTimer(
+            this.mapMarkers.cargoShipEgressAfterHarbor2Timers?.[id]);
+        if (cargoLeavesMapRemainingMs !== null ||
+            cargoShipMeta?.lockedCrateSpawnCounter >= Constants.CARGO_SHIP_LOOT_ROUNDS) {
+            return Client.client.intlGet(this.guildId, 'cargoInGameLockedCrateNoMore');
+        }
+
+        return Client.client.intlGet(this.guildId, 'cargoInGameLockedCrateNoTimer');
+    }
+
+    getCargoCommandExitStatusLine(cargoShip, cargoShipMeta) {
+        const cargoLeavesMapRemainingMs = this.getCargoCommandRemainingMsFromTimer(
+            this.mapMarkers.cargoShipEgressAfterHarbor2Timers?.[cargoShip.id]);
+        if (cargoLeavesMapRemainingMs !== null) {
+            return Client.client.intlGet(this.guildId,
+                cargoShipMeta?.isDepartureCertain === false ?
+                    'cargoInGameExitMayLeaveMap' : 'cargoInGameExitLeavesMap',
+                {
+                    time: Timer.secondsToFullScale(cargoLeavesMapRemainingMs / 1000)
+                });
+        }
+
+        const cargoUndockingSoonRemainingMs = this.getCargoCommandRemainingMsFromEndAt(
+            this.mapMarkers.cargoShipUndockingNotificationEndTimes?.[cargoShip.id]);
+        if (cargoUndockingSoonRemainingMs !== null) {
+            return Client.client.intlGet(this.guildId, 'cargoInGameExitUndockingSoon', {
+                time: Timer.secondsToFullScale(cargoUndockingSoonRemainingMs / 1000)
+            });
+        }
+
+        const cargoEgressRemainingMs = this.getCargoCommandRemainingMsFromTimer(
+            this.mapMarkers.cargoShipEgressTimers?.[cargoShip.id]);
+        if (cargoEgressRemainingMs !== null) {
+            return Client.client.intlGet(this.guildId, 'cargoInGameExitEgress', {
+                time: Timer.secondsToFullScale(cargoEgressRemainingMs / 1000)
+            });
+        }
+
+        if (cargoShip?.onItsWayOut || cargoShipMeta?.isLeaving === true) {
+            return Client.client.intlGet(this.guildId,
+                cargoShipMeta?.isDepartureCertain === false ?
+                    'cargoInGameExitMayBeLeavingNow' : 'cargoInGameExitLeavingNow');
+        }
+
+        return Client.client.intlGet(this.guildId, 'cargoInGameExitNoTimer');
+    }
+
+    getCargoCommandTimerText(timerEntry) {
+        const args = {
+            location: timerEntry.location,
+            time: Timer.secondsToFullScale(timerEntry.remainingMs / 1000)
+        };
+
+        switch (timerEntry.type) {
+            case 'lockedCrate':
+                return Client.client.intlGet(this.guildId, 'cargoInGameTimerLockedCrate', args);
+
+            case 'noLockedCratesLeft':
+                return Client.client.intlGet(this.guildId, 'cargoInGameTimerNoLockedCratesLeft', args);
+
+            case 'undockingSoon':
+                return Client.client.intlGet(this.guildId, 'cargoInGameTimerUndockingSoon', args);
+
+            case 'egress':
+                return Client.client.intlGet(this.guildId, 'cargoInGameTimerEgress', args);
+
+            case 'leavesMap':
+                return Client.client.intlGet(this.guildId, 'cargoInGameTimerLeavesMap', args);
+
+            default:
+                return null;
+        }
+    }
+
+    getInGameCargoSummary() {
+        const cargoShips = this.getCargoCommandActiveShips();
+        if (cargoShips.length === 0) {
+            return this.getCommandCargo();
+        }
+
+        return this.finalizeCargoCommandMessages(cargoShips.map(cargoShip =>
+            this.getCargoCommandSummaryLine(cargoShip)));
+    }
+
+    getInGameCargoStatus() {
+        const cargoShips = this.getCargoCommandActiveShips();
+        if (cargoShips.length === 0) {
+            return this.getCommandCargo();
+        }
+
+        const strings = [];
+        for (const cargoShip of cargoShips) {
+            const cargoShipMeta = this.mapMarkers.getCargoShipMetaData(cargoShip.id);
+
+            strings.push(Client.client.intlGet(this.guildId, 'cargoInGameStatusLine', {
+                location: cargoShip.location.string,
+                status: this.getCargoCommandStatusText(cargoShip, cargoShipMeta)
+            }));
+            strings.push(this.getCargoCommandHarborStatusLine(cargoShipMeta));
+            strings.push(this.getCargoCommandLockedCrateStatusLine(cargoShip.id, cargoShipMeta));
+            strings.push(this.getCargoCommandExitStatusLine(cargoShip, cargoShipMeta));
+        }
+
+        return this.finalizeCargoCommandMessages(strings);
+    }
+
+    getInGameCargoTimers() {
+        const cargoShips = this.getCargoCommandActiveShips();
+        if (cargoShips.length === 0) {
+            return this.getCommandCargo();
+        }
+
+        const timerEntries = [];
+        for (const cargoShip of cargoShips) {
+            timerEntries.push(...this.getCargoCommandTimerEntries(cargoShip.id));
+        }
+
+        if (timerEntries.length === 0) {
+            return this.getInGameCargoSummary();
+        }
+
+        timerEntries.sort((entryA, entryB) => entryA.remainingMs - entryB.remainingMs);
+        return this.finalizeCargoCommandMessages(timerEntries.map(entry =>
+            this.getCargoCommandTimerText(entry)));
+    }
+
+    getInGameCommandCargo(command) {
+        const prefix = this.generalSettings.prefix;
+        const commandCargo = `${prefix}${Client.client.intlGet(this.guildId, 'commandSyntaxCargo')}`.toLowerCase();
+        const commandCargoEn = `${prefix}${Client.client.intlGet('en', 'commandSyntaxCargo')}`.toLowerCase();
+        const commandStatus = `${Client.client.intlGet(this.guildId, 'commandSyntaxStatus')}`.toLowerCase();
+        const commandStatusEn = `${Client.client.intlGet('en', 'commandSyntaxStatus')}`.toLowerCase();
+        const commandTimer = `${Client.client.intlGet(this.guildId, 'commandSyntaxTimer')}`.toLowerCase();
+        const commandTimerEn = `${Client.client.intlGet('en', 'commandSyntaxTimer')}`.toLowerCase();
+        const commandTimers = `${Client.client.intlGet(this.guildId, 'commandSyntaxTimers')}`.toLowerCase();
+        const commandTimersEn = `${Client.client.intlGet('en', 'commandSyntaxTimers')}`.toLowerCase();
+
+        let remainingCommand = command.toLowerCase().trim();
+        if (remainingCommand.startsWith(`${commandCargo} `)) {
+            remainingCommand = remainingCommand.slice(`${commandCargo} `.length).trim();
+        }
+        else if (remainingCommand === commandCargo) {
+            remainingCommand = '';
+        }
+        else if (remainingCommand.startsWith(`${commandCargoEn} `)) {
+            remainingCommand = remainingCommand.slice(`${commandCargoEn} `.length).trim();
+        }
+        else if (remainingCommand === commandCargoEn) {
+            remainingCommand = '';
+        }
+        else {
+            return this.getCommandCargo();
+        }
+
+        if (remainingCommand === '') {
+            return this.getInGameCargoSummary();
+        }
+
+        const subcommand = remainingCommand.replace(/ .*/, '');
+        switch (subcommand) {
+            case commandStatus:
+            case commandStatusEn:
+                return this.getInGameCargoStatus();
+
+            case commandTimer:
+            case commandTimerEn:
+            case commandTimers:
+            case commandTimersEn:
+                return this.getInGameCargoTimers();
+
+            default:
+                return this.getInGameCargoSummary();
+        }
+    }
+
     getCommandCargo(isInfoChannel = false) {
         const strings = [];
-        let unhandled = this.mapMarkers.cargoShips.map(e => e.id);
+        const handled = new Set();
+        const pushCargoTimerString = (timerCollection, infoTextId, textId) => {
+            for (const [id, timer] of Object.entries(timerCollection)) {
+                const cargoShip = this.mapMarkers.getMarkerByTypeId(this.mapMarkers.types.CargoShip, parseInt(id));
+                if (!cargoShip) continue;
+
+                const time = Timer.getTimeLeftOfTimer(timer);
+                if (!time) continue;
+
+                handled.add(parseInt(id));
+                if (isInfoChannel) {
+                    return Client.client.intlGet(this.guildId, infoTextId, {
+                        time: Timer.getTimeLeftOfTimer(timer, 's'),
+                        location: cargoShip.location.string
+                    });
+                }
+
+                strings.push(Client.client.intlGet(this.guildId, textId, {
+                    time: time,
+                    location: cargoShip.location.string
+                }));
+            }
+
+            return null;
+        };
+
+        const afterHarbor1Info = pushCargoTimerString(
+            this.mapMarkers.cargoShipEgressAfterHarbor1Timers,
+            'cargoLeavesInTime',
+            'timeBeforeCargoLeavesMap'
+        );
+        if (afterHarbor1Info !== null) {
+            return afterHarbor1Info;
+        }
+
+        const afterHarbor2Info = pushCargoTimerString(
+            this.mapMarkers.cargoShipEgressAfterHarbor2Timers,
+            'cargoLeavesInTime',
+            'timeBeforeCargoLeavesMap'
+        );
+        if (afterHarbor2Info !== null) {
+            return afterHarbor2Info;
+        }
+
         for (const [id, timer] of Object.entries(this.mapMarkers.cargoShipEgressTimers)) {
+            if (handled.has(parseInt(id))) continue;
+
             const cargoShip = this.mapMarkers.getMarkerByTypeId(this.mapMarkers.types.CargoShip, parseInt(id));
+            if (!cargoShip) continue;
             const time = Timer.getTimeLeftOfTimer(timer);
             if (time) {
+                handled.add(parseInt(id));
                 if (isInfoChannel) {
                     return Client.client.intlGet(this.guildId, 'egressInTime', {
                         time: Timer.getTimeLeftOfTimer(timer, 's'),
@@ -1050,13 +1622,15 @@ class RustPlus extends RustPlusLib {
                     }));
                 }
             }
-            unhandled = unhandled.filter(e => e != parseInt(id));
         }
+
+        let unhandled = this.mapMarkers.cargoShips.map(e => e.id).filter(id => !handled.has(id));
 
         if (unhandled.length > 0) {
             for (const id of unhandled) {
                 const cargoShip = this.mapMarkers.getMarkerByTypeId(this.mapMarkers.types.CargoShip, id);
-                if (cargoShip.onItsWayOut) {
+                const cargoShipMeta = this.mapMarkers.cargoShipMetaData[id];
+                if (cargoShip.onItsWayOut || cargoShipMeta?.isLeaving === true) {
                     if (isInfoChannel) {
                         return Client.client.intlGet(this.guildId, 'leavingMapAt', {
                             location: cargoShip.location.string

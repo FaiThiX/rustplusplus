@@ -139,6 +139,24 @@ module.exports = {
         return Math.sqrt(a * a + b * b);
     },
 
+    isSameDirection: function (pointA, pointB, pointC) {
+        if (!pointA || !pointB || !pointC) return false;
+
+        const abX = pointB.x - pointA.x;
+        const abY = pointB.y - pointA.y;
+        const bcX = pointC.x - pointB.x;
+        const bcY = pointC.y - pointB.y;
+
+        const abLength = Math.sqrt(abX * abX + abY * abY);
+        const bcLength = Math.sqrt(bcX * bcX + bcY * bcY);
+        if (abLength === 0 || bcLength === 0) return false;
+
+        const dot = (abX * bcX) + (abY * bcY);
+        const cosine = dot / (abLength * bcLength);
+
+        return cosine >= 0.85;
+    },
+
     isOutsideGridSystem: function (x, y, mapSize, offset = 0) {
         return (x < -offset || x > (mapSize + offset) || y < -offset || y > (mapSize + offset));
     },

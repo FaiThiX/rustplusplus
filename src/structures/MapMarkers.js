@@ -52,6 +52,13 @@ class MapMarkers {
 
         /* Timers */
         this.cargoShipEgressTimers = new Object();
+        this.cargoShipEgressAfterHarbor1Timers = new Object();
+        this.cargoShipEgressAfterHarbor2Timers = new Object();
+        this.cargoShipLockedCrateSpawnIntervals = new Object();
+        this.cargoShipLockedCrateSpawnTimeouts = new Object();
+        this.cargoShipLockedCrateNextSpawnTimes = new Object();
+        this.cargoShipUndockingNotificationTimeouts = new Object();
+        this.cargoShipUndockingNotificationEndTimes = new Object();
         this.crateSmallOilRigTimer = null;
         this.crateSmallOilRigLocation = null;
         this.crateLargeOilRigTimer = null;
@@ -74,6 +81,9 @@ class MapMarkers {
 
         /* Vending Machine variables */
         this.knownVendingMachines = [];
+
+        /* CargoShip meta data */
+        this.cargoShipMetaData = new Object();
 
         /* DeepSea. */
         this.isDeepSeaActive = false;
@@ -258,6 +268,115 @@ class MapMarkers {
         }
 
         return remainingMarkersOfType;
+    }
+
+    getCargoShipMetaData(id) {
+        if (!this.cargoShipMetaData[id]) {
+            this.cargoShipMetaData[id] = {
+                lockedCrateSpawnCounter: 0,
+                harborsDocked: [],
+                dockingStatus: null,
+                isLeaving: false,
+                prevPoint: null,
+                isDepartureCertain: true
+            };
+        }
+
+        return this.cargoShipMetaData[id];
+    }
+
+    getCargoHarbors() {
+        if (!this.rustplus?.map?.monuments) {
+            return [];
+        }
+
+        return this.rustplus.map.monuments.filter(monument => /harbor/.test(monument.token));
+    }
+
+    getClosestCargoHarbor(x, y, harbors = null) {
+        const harborList = harbors ?? this.getCargoHarbors();
+        let closestHarbor = null;
+        let minDistance = Number.POSITIVE_INFINITY;
+
+        for (const harbor of harborList) {
+            const distance = Map.getDistance(x, y, harbor.x, harbor.y);
+            if (distance < minDistance) {
+                minDistance = distance;
+                closestHarbor = harbor;
+            }
+        }
+
+        return closestHarbor;
+    }
+
+    stopCargoShipTimer(timerCollection, id) {
+        if (timerCollection[id]) {
+            timerCollection[id].stop();
+            delete timerCollection[id];
+        }
+    }
+
+    clearCargoShipLockedCrateSpawnScheduler(id) {
+        if (this.cargoShipLockedCrateSpawnIntervals[id]) {
+            clearInterval(this.cargoShipLockedCrateSpawnIntervals[id]);
+            delete this.cargoShipLockedCrateSpawnIntervals[id];
+        }
+
+        if (this.cargoShipLockedCrateSpawnTimeouts[id]) {
+            clearTimeout(this.cargoShipLockedCrateSpawnTimeouts[id]);
+            delete this.cargoShipLockedCrateSpawnTimeouts[id];
+        }
+
+        delete this.cargoShipLockedCrateNextSpawnTimes[id];
+    }
+
+    scheduleCargoShipLockedCrateSpawnTimeout(id, delayMs) {
+        if (!this.cargoShipMetaData[id] ||
+            this.cargoShipMetaData[id].lockedCrateSpawnCounter >= Constants.CARGO_SHIP_LOOT_ROUNDS) {
+            this.clearCargoShipLockedCrateSpawnScheduler(id);
+            return;
+        }
+
+        if (this.cargoShipLockedCrateSpawnTimeouts[id]) {
+            clearTimeout(this.cargoShipLockedCrateSpawnTimeouts[id]);
+            delete this.cargoShipLockedCrateSpawnTimeouts[id];
+        }
+
+        if (delayMs <= 0) {
+            this.notifyCargoShipLockedCrateSpawn(id);
+
+            if (this.cargoShipMetaData[id] &&
+                this.cargoShipMetaData[id].lockedCrateSpawnCounter < Constants.CARGO_SHIP_LOOT_ROUNDS &&
+                !this.cargoShipLockedCrateSpawnIntervals[id]) {
+                this.cargoShipLockedCrateNextSpawnTimes[id] =
+                    Date.now() + Constants.CARGO_SHIP_LOOT_ROUNDS_SPACING_MS;
+                this.cargoShipLockedCrateSpawnIntervals[id] = setInterval(() => {
+                    this.notifyCargoShipLockedCrateSpawn(id);
+                }, Constants.CARGO_SHIP_LOOT_ROUNDS_SPACING_MS);
+            }
+            return;
+        }
+
+        this.cargoShipLockedCrateNextSpawnTimes[id] = Date.now() + delayMs;
+        this.cargoShipLockedCrateSpawnTimeouts[id] = setTimeout(() => {
+            delete this.cargoShipLockedCrateSpawnTimeouts[id];
+
+            if (!this.cargoShipMetaData[id]) {
+                delete this.cargoShipLockedCrateNextSpawnTimes[id];
+                return;
+            }
+
+            this.notifyCargoShipLockedCrateSpawn(id);
+
+            if (this.cargoShipMetaData[id] &&
+                this.cargoShipMetaData[id].lockedCrateSpawnCounter < Constants.CARGO_SHIP_LOOT_ROUNDS) {
+                this.cargoShipLockedCrateNextSpawnTimes[id] =
+                    Date.now() + Constants.CARGO_SHIP_LOOT_ROUNDS_SPACING_MS;
+                this.cargoShipLockedCrateSpawnIntervals[id] = setInterval(() => {
+                    this.notifyCargoShipLockedCrateSpawn(id);
+                }, Constants.CARGO_SHIP_LOOT_ROUNDS_SPACING_MS);
+            }
+        }, delayMs);
     }
 
 
@@ -536,35 +655,38 @@ class MapMarkers {
         let newMarkers = this.getNewMarkersOfTypeId(this.types.CargoShip, mapMarkers.markers);
         let leftMarkers = this.getLeftMarkersOfTypeId(this.types.CargoShip, mapMarkers.markers);
         let remainingMarkers = this.getRemainingMarkersOfTypeId(this.types.CargoShip, mapMarkers.markers);
+        let mapSize = this.rustplus.info.correctedMapSize;
+        let numberOfGrids = Math.max(1, Math.floor(mapSize / Map.gridDiameter));
+        let gridDiameter = mapSize / numberOfGrids;
+        let harbors = this.getCargoHarbors();
+        let harborCount = harbors.length;
+        let instance = this.client.getInstance(this.rustplus.guildId);
 
         /* CargoShip markers that are new. */
         for (let marker of newMarkers) {
-            let mapSize = this.rustplus.info.correctedMapSize;
             let pos = Map.getPos(marker.x, marker.y, mapSize, this.rustplus);
+            let offset = 4 * gridDiameter;
+            let isOutside = Map.isOutsideGridSystem(marker.x, marker.y, mapSize, offset);
 
             this.rustplus.cargoShipTracers[marker.id] = [{ x: marker.x, y: marker.y }];
+            this.cargoShipMetaData[marker.id] = {
+                lockedCrateSpawnCounter: 0,
+                harborsDocked: [],
+                dockingStatus: null,
+                isLeaving: false,
+                prevPoint: null,
+                isDepartureCertain: true
+            };
 
             marker.location = pos;
             marker.onItsWayOut = false;
-            marker.isDocked = false;
 
-            /* Offset that is used to determine if CargoShip just spawned */
-            let offset = 4 * Map.gridDiameter;
-
-            /* If CargoShip is located outside the grid system + the offset */
-            if (Map.isOutsideGridSystem(marker.x, marker.y, mapSize, offset)) {
+            if (isOutside) {
                 this.rustplus.sendEvent(
                     this.rustplus.notificationSettings.cargoShipDetectedSetting,
                     this.client.intlGet(this.rustplus.guildId, 'cargoShipEntersMap', { location: pos.string }),
                     'cargo',
                     Constants.COLOR_CARGO_SHIP_ENTERS_MAP);
-
-                let instance = this.client.getInstance(this.rustplus.guildId);
-                this.cargoShipEgressTimers[marker.id] = new Timer.timer(
-                    this.notifyCargoShipEgress.bind(this),
-                    instance.serverList[this.rustplus.serverId].cargoShipEgressTimeMs,
-                    marker.id);
-                this.cargoShipEgressTimers[marker.id].start();
             }
             else {
                 this.rustplus.sendEvent(
@@ -575,78 +697,259 @@ class MapMarkers {
             }
 
             this.cargoShips.push(marker);
+
+            if (!this.rustplus.isFirstPoll) {
+                this.cargoShipEgressTimers[marker.id] = new Timer.timer(
+                    this.notifyCargoShipEgress.bind(this),
+                    instance.serverList[this.rustplus.serverId].cargoShipEgressTimeMs,
+                    marker.id);
+                this.cargoShipEgressTimers[marker.id].start();
+
+                this.notifyCargoShipLockedCrateSpawn(marker.id);
+                if (this.cargoShipMetaData[marker.id].lockedCrateSpawnCounter <
+                    Constants.CARGO_SHIP_LOOT_ROUNDS) {
+                    this.cargoShipLockedCrateNextSpawnTimes[marker.id] =
+                        Date.now() + Constants.CARGO_SHIP_LOOT_ROUNDS_SPACING_MS;
+                    this.cargoShipLockedCrateSpawnIntervals[marker.id] = setInterval(() => {
+                        this.notifyCargoShipLockedCrateSpawn(marker.id);
+                    }, Constants.CARGO_SHIP_LOOT_ROUNDS_SPACING_MS);
+                }
+            }
         }
 
         /* CargoShip markers that have left. */
         for (let marker of leftMarkers) {
+            let cargoShip = this.getMarkerByTypeId(this.types.CargoShip, marker.id) ?? marker;
+
             this.rustplus.sendEvent(
                 this.rustplus.notificationSettings.cargoShipLeftSetting,
-                this.client.intlGet(this.rustplus.guildId, 'cargoShipLeftMap', { location: marker.location.string }),
+                this.client.intlGet(this.rustplus.guildId, 'cargoShipLeftMap', { location: cargoShip.location.string }),
                 'cargo',
                 Constants.COLOR_CARGO_SHIP_LEFT_MAP);
 
-            if (this.cargoShipEgressTimers[marker.id]) {
-                this.cargoShipEgressTimers[marker.id].stop();
-                delete this.cargoShipEgressTimers[marker.id];
+            this.stopCargoShipTimer(this.cargoShipEgressTimers, marker.id);
+            this.stopCargoShipTimer(this.cargoShipEgressAfterHarbor1Timers, marker.id);
+            this.stopCargoShipTimer(this.cargoShipEgressAfterHarbor2Timers, marker.id);
+            this.clearCargoShipLockedCrateSpawnScheduler(marker.id);
+            if (this.cargoShipUndockingNotificationTimeouts[marker.id]) {
+                clearTimeout(this.cargoShipUndockingNotificationTimeouts[marker.id]);
+                delete this.cargoShipUndockingNotificationTimeouts[marker.id];
             }
+            delete this.cargoShipUndockingNotificationEndTimes[marker.id];
 
             this.timeSinceCargoShipWasOut = new Date();
 
+            delete this.cargoShipMetaData[marker.id];
             this.cargoShips = this.cargoShips.filter(e => e.id !== marker.id);
             delete this.rustplus.cargoShipTracers[marker.id];
         }
 
         /* CargoShip markers that still remains. */
         for (let marker of remainingMarkers) {
-            let mapSize = this.rustplus.info.correctedMapSize;
             let pos = Map.getPos(marker.x, marker.y, mapSize, this.rustplus);
             let cargoShip = this.getMarkerByTypeId(this.types.CargoShip, marker.id);
+            let cargoShipMeta = this.getCargoShipMetaData(marker.id);
+            let closestHarbor = this.getClosestCargoHarbor(marker.x, marker.y, harbors);
+            let prevPoint = cargoShipMeta.prevPoint;
+            let isSameDir = prevPoint && Map.isSameDirection(prevPoint, {
+                x: cargoShip.x,
+                y: cargoShip.y
+            }, {
+                x: marker.x,
+                y: marker.y
+            });
+            let hasEgressTimer = Object.prototype.hasOwnProperty.call(this.cargoShipEgressTimers, marker.id);
+            let isOutside = Map.isOutsideGridSystem(marker.x, marker.y, mapSize, 4 * gridDiameter);
+            let isLeaving = cargoShipMeta.isLeaving;
 
+            if (!this.rustplus.cargoShipTracers[marker.id]) {
+                this.rustplus.cargoShipTracers[marker.id] = [];
+            }
             this.rustplus.cargoShipTracers[marker.id].push({ x: marker.x, y: marker.y });
 
-            const harbors = [];
-            for (const monument of this.rustplus.map.monuments) {
-                if (/harbor/.test(monument.token)) {
-                    harbors.push({ x: monument.x, y: monument.y })
+            if (closestHarbor) {
+                let prevDist = Map.getDistance(cargoShip.x, cargoShip.y, closestHarbor.x, closestHarbor.y);
+                let currDist = Map.getDistance(marker.x, marker.y, closestHarbor.x, closestHarbor.y);
+                let harborAlreadyDocked = cargoShipMeta.harborsDocked.some(e =>
+                    e.x === closestHarbor.x && e.y === closestHarbor.y);
+                let hasDockingStatus = cargoShipMeta.dockingStatus !== null;
+                let allHarborsDocked = harborCount === 0 || cargoShipMeta.harborsDocked.length === harborCount;
+                let isStandingStill = cargoShip.x === marker.x && cargoShip.y === marker.y;
+                let harborLocation = Map.getPos(closestHarbor.x, closestHarbor.y, mapSize, this.rustplus);
+                let harborName = harborLocation.monument ?? harborLocation.location;
+                let harborGrid = Map.getGridPos(closestHarbor.x, closestHarbor.y, mapSize) ?? harborLocation.location;
+
+                let startHarborApproach =
+                    prevDist > Constants.CARGO_SHIP_HARBOR_DOCKING_DISTANCE &&
+                    currDist <= Constants.CARGO_SHIP_HARBOR_DOCKING_DISTANCE &&
+                    !hasDockingStatus && !harborAlreadyDocked && !allHarborsDocked;
+
+                let justDocked =
+                    currDist <= Constants.CARGO_SHIP_HARBOR_DOCKING_DISTANCE &&
+                    ((hasDockingStatus && cargoShipMeta.dockingStatus === 'docking' && isStandingStill) ||
+                        (!hasDockingStatus && isStandingStill));
+
+                let startHarborDeparture =
+                    hasDockingStatus && cargoShipMeta.dockingStatus === 'docked' && !isStandingStill;
+
+                let justUndocked =
+                    prevDist < Constants.CARGO_SHIP_HARBOR_UNDOCKED_DISTANCE &&
+                    currDist >= Constants.CARGO_SHIP_HARBOR_UNDOCKED_DISTANCE &&
+                    hasDockingStatus &&
+                    (cargoShipMeta.dockingStatus === 'docking' || cargoShipMeta.dockingStatus === 'undocking');
+
+                let abortFalseHarborApproach =
+                    hasDockingStatus &&
+                    cargoShipMeta.dockingStatus === 'docking' &&
+                    !isStandingStill &&
+                    currDist > Constants.CARGO_SHIP_HARBOR_DOCKING_DISTANCE &&
+                    currDist >= prevDist;
+
+                if (startHarborApproach) {
+                    cargoShipMeta.dockingStatus = 'docking';
+
+                    this.rustplus.sendEvent(
+                        this.rustplus.notificationSettings.cargoShipDockingSetting,
+                        this.client.intlGet(this.rustplus.guildId, 'cargoShipDocking', {
+                            location: harborName,
+                            grid: harborGrid
+                        }),
+                        'cargo',
+                        Constants.COLOR_CARGO_SHIP_DOCKED);
+                }
+                else if (justDocked) {
+                    cargoShipMeta.dockingStatus = 'docked';
+                    if (!harborAlreadyDocked) {
+                        cargoShipMeta.harborsDocked.push({ x: closestHarbor.x, y: closestHarbor.y });
+                    }
+
+                    this.rustplus.sendEvent(
+                        this.rustplus.notificationSettings.cargoShipDockedSetting,
+                        this.client.intlGet(this.rustplus.guildId, 'cargoShipDocked', {
+                            location: harborName,
+                            grid: harborGrid
+                        }),
+                        'cargo',
+                        Constants.COLOR_CARGO_SHIP_DOCKED);
+
+                    if (this.cargoShipUndockingNotificationTimeouts[marker.id]) {
+                        clearTimeout(this.cargoShipUndockingNotificationTimeouts[marker.id]);
+                    }
+                    this.cargoShipUndockingNotificationEndTimes[marker.id] =
+                        Date.now() + Constants.CARGO_SHIP_HARBOR_DOCKING_TIME_MS -
+                        (60 * 1000 + 10 * 1000);
+                    this.cargoShipUndockingNotificationTimeouts[marker.id] = setTimeout(
+                        this.notifyCargoShipUndockingSoon.bind(this, marker.id, mapSize),
+                        Constants.CARGO_SHIP_HARBOR_DOCKING_TIME_MS - (60 * 1000 + 10 * 1000)
+                    );
+                }
+                else if (startHarborDeparture) {
+                    cargoShipMeta.dockingStatus = 'undocking';
+
+                    this.rustplus.sendEvent(
+                        this.rustplus.notificationSettings.cargoShipUndockingSetting,
+                        this.client.intlGet(this.rustplus.guildId, 'cargoShipUndocking', {
+                            location: harborName,
+                            grid: harborGrid
+                        }),
+                        'cargo',
+                        Constants.COLOR_CARGO_SHIP_DOCKED);
+
+                    if (this.cargoShipUndockingNotificationTimeouts[marker.id]) {
+                        clearTimeout(this.cargoShipUndockingNotificationTimeouts[marker.id]);
+                        delete this.cargoShipUndockingNotificationTimeouts[marker.id];
+                    }
+                    delete this.cargoShipUndockingNotificationEndTimes[marker.id];
+                }
+                else if (justUndocked) {
+                    if (Object.prototype.hasOwnProperty.call(this.cargoShipEgressTimers, marker.id) &&
+                        allHarborsDocked &&
+                        cargoShipMeta.dockingStatus === 'undocking') {
+                        let timeLeftMs = this.cargoShipEgressTimers[marker.id].getTimeLeft();
+                        let cargoLocation = pos.string;
+
+                        if (timeLeftMs < Constants.CARGO_SHIP_LEAVE_AFTER_HARBOR_NO_CRATES_MS) {
+                            this.stopCargoShipTimer(this.cargoShipEgressTimers, marker.id);
+                            this.cargoShipEgressAfterHarbor1Timers[marker.id] = new Timer.timer(
+                                this.notifyCargoShipEgressAfterHarbor.bind(this, marker.id, true),
+                                Constants.CARGO_SHIP_LEAVE_AFTER_HARBOR_NO_CRATES_MS
+                            );
+                            this.cargoShipEgressAfterHarbor1Timers[marker.id].start();
+                        }
+
+                        if (timeLeftMs < Constants.CARGO_SHIP_LEAVE_AFTER_HARBOR_NO_CRATES_MS ||
+                            (timeLeftMs >= Constants.CARGO_SHIP_LEAVE_AFTER_HARBOR_NO_CRATES_MS &&
+                                timeLeftMs < Constants.CARGO_SHIP_LEAVE_AFTER_HARBOR_WITH_CRATES_MS)) {
+                            this.stopCargoShipTimer(this.cargoShipEgressAfterHarbor2Timers, marker.id);
+                            this.cargoShipEgressAfterHarbor2Timers[marker.id] = new Timer.timer(
+                                this.notifyCargoShipEgressAfterHarbor.bind(this, marker.id, false),
+                                Constants.CARGO_SHIP_LEAVE_AFTER_HARBOR_WITH_CRATES_MS
+                            );
+                            this.cargoShipEgressAfterHarbor2Timers[marker.id].start();
+                            cargoShipMeta.isDepartureCertain = false;
+                        }
+
+                        let timeLeftMin = (timeLeftMs / (60 * 1000)).toFixed(1);
+
+                        if (timeLeftMs < Constants.CARGO_SHIP_LEAVE_AFTER_HARBOR_NO_CRATES_MS) {
+                            this.rustplus.sendEvent(
+                                this.rustplus.notificationSettings.cargoShipLeavingSetting,
+                                this.client.intlGet(this.rustplus.guildId, 'cargoShipLeavingSoon', {
+                                    location: cargoLocation,
+                                    first: '2',
+                                    second: '19.5'
+                                }),
+                                'cargo',
+                                Constants.COLOR_CARGO_SHIP_ENTERS_EGRESS_STAGE);
+                        }
+                        else if (timeLeftMs < Constants.CARGO_SHIP_LEAVE_AFTER_HARBOR_WITH_CRATES_MS) {
+                            this.rustplus.sendEvent(
+                                this.rustplus.notificationSettings.cargoShipLeavingSetting,
+                                this.client.intlGet(this.rustplus.guildId, 'cargoShipLeavingSoon', {
+                                    location: cargoLocation,
+                                    first: `${timeLeftMin}`,
+                                    second: '19.5'
+                                }),
+                                'cargo',
+                                Constants.COLOR_CARGO_SHIP_ENTERS_EGRESS_STAGE);
+                        }
+                        else {
+                            this.rustplus.sendEvent(
+                                this.rustplus.notificationSettings.cargoShipLeavingSetting,
+                                this.client.intlGet(this.rustplus.guildId, 'cargoShipLeavingInTime', {
+                                    location: cargoLocation,
+                                    min: `${timeLeftMin}`
+                                }),
+                                'cargo',
+                                Constants.COLOR_CARGO_SHIP_ENTERS_EGRESS_STAGE);
+                        }
+                    }
+
+                    cargoShipMeta.dockingStatus = null;
+                }
+                else if (abortFalseHarborApproach) {
+                    cargoShipMeta.dockingStatus = null;
                 }
             }
 
-            /* If CargoShip is docked at Harbor */
-            if (!this.rustplus.isFirstPoll && !cargoShip.isDocked) {
-                for (const harbor of harbors) {
-                    if (Map.getDistance(marker.x, marker.y, harbor.x, harbor.y) <= Constants.HARBOR_DOCK_DISTANCE) {
-                        if (marker.x === cargoShip.x && marker.y === cargoShip.y) {
-                            /* CargoShip is now docked. */
-                            const harborLocation = Map.getPos(harbor.x, harbor.y, mapSize, this.rustplus);
-                            cargoShip.isDocked = true;
-                            this.rustplus.sendEvent(
-                                this.rustplus.notificationSettings.cargoShipDockingAtHarborSetting,
-                                this.client.intlGet(this.rustplus.guildId, 'cargoShipDockingAtHarbor',
-                                    { location: harborLocation.location }), 'cargo', Constants.COLOR_CARGO_SHIP_DOCKED
-                            );
-                        }
-                    }
-                }
-            }
-            else if (!this.rustplus.isFirstPoll && cargoShip.isDocked) {
-                for (const harbor of harbors) {
-                    if (Map.getDistance(marker.x, marker.y, harbor.x, harbor.y) <= Constants.HARBOR_DOCK_DISTANCE) {
-                        if (marker.x !== cargoShip.x || marker.y !== cargoShip.y) {
-                            const harborLocation = Map.getPos(harbor.x, harbor.y, mapSize, this.rustplus);
-                            cargoShip.isDocked = false;
-                            this.rustplus.sendEvent(
-                                this.rustplus.notificationSettings.cargoShipDockingAtHarborSetting,
-                                this.client.intlGet(this.rustplus.guildId, 'cargoShipLeftHarbor',
-                                    { location: harborLocation.location }), 'cargo', Constants.COLOR_CARGO_SHIP_DOCKED
-                            );
-                        }
-                    }
-                }
+            if (!isLeaving && isSameDir && !hasEgressTimer && isOutside) {
+                cargoShipMeta.isLeaving = true;
+                cargoShip.onItsWayOut = true;
+
+                this.rustplus.sendEvent(
+                    this.rustplus.notificationSettings.cargoShipLeavingSetting,
+                    this.client.intlGet(this.rustplus.guildId, 'cargoShipLeaving', {
+                        location: pos.string
+                    }),
+                    'cargo',
+                    Constants.COLOR_CARGO_SHIP_ENTERS_EGRESS_STAGE);
             }
 
+            cargoShipMeta.prevPoint = { x: cargoShip.x, y: cargoShip.y };
             cargoShip.x = marker.x;
             cargoShip.y = marker.y;
             cargoShip.location = pos;
+            cargoShip.onItsWayOut = cargoShipMeta.isLeaving;
         }
     }
 
@@ -836,23 +1139,116 @@ class MapMarkers {
     /* Timer notification functions */
 
     notifyCargoShipEgress(args) {
-        let id = args[0];
+        let id = Array.isArray(args) ? args[0] : args;
         let marker = this.getMarkerByTypeId(this.types.CargoShip, id);
+        let cargoShipMeta = this.cargoShipMetaData[id];
+        let allHarborsDocked = cargoShipMeta &&
+            cargoShipMeta.harborsDocked.length === this.getCargoHarbors().length;
+        let hasDockingStatus = cargoShipMeta && cargoShipMeta.dockingStatus !== null;
 
-        this.rustplus.sendEvent(
-            this.rustplus.notificationSettings.cargoShipEgressSetting,
-            this.client.intlGet(this.rustplus.guildId, 'cargoShipEntersEgressStage', {
-                location: marker.location.string
-            }),
-            'cargo',
-            Constants.COLOR_CARGO_SHIP_ENTERS_EGRESS_STAGE);
+        this.stopCargoShipTimer(this.cargoShipEgressTimers, id);
 
-        if (this.cargoShipEgressTimers[id]) {
-            this.cargoShipEgressTimers[id].stop();
-            delete this.cargoShipEgressTimers[id];
+        if (!marker || !cargoShipMeta || !allHarborsDocked || hasDockingStatus) {
+            return;
         }
 
-        marker.onItsWayOut = true;
+        this.rustplus.sendEvent(
+            this.rustplus.notificationSettings.cargoShipLeavingSetting,
+            this.client.intlGet(this.rustplus.guildId,
+                cargoShipMeta.isDepartureCertain ? 'cargoShipLeaving' : 'cargoShipLeavingMaybe',
+                { location: marker.location.string }),
+            'cargo',
+            Constants.COLOR_CARGO_SHIP_ENTERS_EGRESS_STAGE);
+    }
+
+    notifyCargoShipEgressAfterHarbor(id, firstTimer) {
+        let cargoShip = this.getMarkerByTypeId(this.types.CargoShip, id);
+        if (!cargoShip) {
+            this.stopCargoShipTimer(firstTimer ? this.cargoShipEgressAfterHarbor1Timers :
+                this.cargoShipEgressAfterHarbor2Timers, id);
+            return;
+        }
+
+        this.stopCargoShipTimer(firstTimer ? this.cargoShipEgressAfterHarbor1Timers :
+            this.cargoShipEgressAfterHarbor2Timers, id);
+
+        this.rustplus.sendEvent(
+            this.rustplus.notificationSettings.cargoShipLeavingSetting,
+            this.client.intlGet(this.rustplus.guildId,
+                firstTimer ? 'cargoShipLeavingNoLockedCratesLeft' : 'cargoShipLeaving',
+                { location: cargoShip.location.string }),
+            'cargo',
+            Constants.COLOR_CARGO_SHIP_ENTERS_EGRESS_STAGE);
+    }
+
+    notifyCargoShipLockedCrateSpawn(id) {
+        let cargoShipMeta = this.cargoShipMetaData[id];
+        let cargoShip = this.getMarkerByTypeId(this.types.CargoShip, id);
+        if (!cargoShipMeta || !cargoShip) {
+            this.clearCargoShipLockedCrateSpawnScheduler(id);
+            return;
+        }
+
+        cargoShipMeta.lockedCrateSpawnCounter++;
+
+        if (cargoShipMeta.lockedCrateSpawnCounter >= Constants.CARGO_SHIP_LOOT_ROUNDS) {
+            this.clearCargoShipLockedCrateSpawnScheduler(id);
+        }
+        else {
+            this.cargoShipLockedCrateNextSpawnTimes[id] =
+                Date.now() + Constants.CARGO_SHIP_LOOT_ROUNDS_SPACING_MS;
+        }
+
+        this.rustplus.sendEvent(
+            this.rustplus.notificationSettings.cargoShipLockedCrateSpawnedSetting,
+            this.client.intlGet(this.rustplus.guildId, 'cargoShipLockedCrateSpawned', {
+                location: cargoShip.location.string
+            }),
+            'cargo',
+            Constants.COLOR_CARGO_SHIP_LOCATED,
+            false,
+            'locked_crate_cargoship_logo.png');
+    }
+
+    notifyCargoShipUndockingSoon(id, mapSize) {
+        let cargoShip = this.getMarkerByTypeId(this.types.CargoShip, id);
+        if (!cargoShip) {
+            if (this.cargoShipUndockingNotificationTimeouts[id]) {
+                clearTimeout(this.cargoShipUndockingNotificationTimeouts[id]);
+                delete this.cargoShipUndockingNotificationTimeouts[id];
+            }
+            delete this.cargoShipUndockingNotificationEndTimes[id];
+            return;
+        }
+
+        let harbor = this.getClosestCargoHarbor(cargoShip.x, cargoShip.y);
+        if (!harbor) {
+            if (this.cargoShipUndockingNotificationTimeouts[id]) {
+                clearTimeout(this.cargoShipUndockingNotificationTimeouts[id]);
+                delete this.cargoShipUndockingNotificationTimeouts[id];
+            }
+            delete this.cargoShipUndockingNotificationEndTimes[id];
+            return;
+        }
+
+        let harborLocation = Map.getPos(harbor.x, harbor.y, mapSize, this.rustplus);
+        let harborName = harborLocation.monument ?? harborLocation.location;
+        let harborGrid = Map.getGridPos(harbor.x, harbor.y, mapSize) ?? harborLocation.location;
+
+        this.rustplus.sendEvent(
+            this.rustplus.notificationSettings.cargoShipUndockingSetting,
+            this.client.intlGet(this.rustplus.guildId, 'cargoShipUndockingSoon', {
+                location: harborName,
+                grid: harborGrid
+            }),
+            'cargo',
+            Constants.COLOR_CARGO_SHIP_DOCKED);
+
+        if (this.cargoShipUndockingNotificationTimeouts[id]) {
+            clearTimeout(this.cargoShipUndockingNotificationTimeouts[id]);
+            delete this.cargoShipUndockingNotificationTimeouts[id];
+        }
+        delete this.cargoShipUndockingNotificationEndTimes[id];
     }
 
     notifyCrateSmallOilRigOpen(args) {
@@ -921,6 +1317,28 @@ class MapMarkers {
             timer.stop();
         }
         this.cargoShipEgressTimers = new Object();
+        for (const [id, timer] of Object.entries(this.cargoShipEgressAfterHarbor1Timers)) {
+            timer.stop();
+        }
+        this.cargoShipEgressAfterHarbor1Timers = new Object();
+        for (const [id, timer] of Object.entries(this.cargoShipEgressAfterHarbor2Timers)) {
+            timer.stop();
+        }
+        this.cargoShipEgressAfterHarbor2Timers = new Object();
+        for (const [id, interval] of Object.entries(this.cargoShipLockedCrateSpawnIntervals)) {
+            clearInterval(interval);
+        }
+        this.cargoShipLockedCrateSpawnIntervals = new Object();
+        for (const [id, timeoutId] of Object.entries(this.cargoShipLockedCrateSpawnTimeouts)) {
+            clearTimeout(timeoutId);
+        }
+        this.cargoShipLockedCrateSpawnTimeouts = new Object();
+        this.cargoShipLockedCrateNextSpawnTimes = new Object();
+        for (const [id, timeoutId] of Object.entries(this.cargoShipUndockingNotificationTimeouts)) {
+            clearTimeout(timeoutId);
+        }
+        this.cargoShipUndockingNotificationTimeouts = new Object();
+        this.cargoShipUndockingNotificationEndTimes = new Object();
         if (this.crateSmallOilRigTimer) {
             this.crateSmallOilRigTimer.stop();
         }
@@ -943,6 +1361,7 @@ class MapMarkers {
         this.patrolHelicopterDestroyedLocation = null;
 
         this.knownVendingMachines = [];
+        this.cargoShipMetaData = new Object();
         this.subscribedItemsId = [];
         this.foundItems = [];
 

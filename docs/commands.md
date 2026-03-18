@@ -429,8 +429,8 @@ In-Game Command | Description
 
 ## **cargo**
 
-> **Get information about CargoShip (Location, time till enters egress stage, time since last on map).**
-<br>Command: `!cargo`
+> **Get Cargo Ship information in-game, including summary, state and timer details.**
+<br>Commands: `!cargo`, `!cargo status`, `!cargo timer`, `!cargo timers`
 
 ![In-Game Command cargo Image](images/ingame_commands/cargo_ingame.png)
 

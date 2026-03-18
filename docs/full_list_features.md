@@ -29,7 +29,7 @@
 ## In-Game Commands
 - **afk** - Display afk teammates.
 - **alive** - Display who has been alive longest.
-- **cargo** - Display information regarding Cargoship.
+- **cargo** - Display Cargoship summary, state and timer information.
 - **chinook** - Display information regarding Chinook 47.
 - **connection/connections** - Display latest team connections.
 - **craft** - Display the cost to craft an item.
