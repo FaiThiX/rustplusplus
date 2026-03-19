@@ -273,6 +273,12 @@ class MapMarkers {
         this.updateVendingMachines(mapMarkers);
         this.updateGenericRadiuses(mapMarkers);
         this.updateTravelingVendors(mapMarkers);
+
+        if (this.rustplus &&
+            this.rustplus.persistentRuntimeStateRestored &&
+            typeof (this.rustplus.persistMapMarkersRuntimeState) === 'function') {
+            this.rustplus.persistMapMarkersRuntimeState();
+        }
     }
 
     updatePlayers(mapMarkers) {
@@ -329,41 +335,13 @@ class MapMarkers {
                 }
             }
 
-            if (Map.isOutsideGridSystem(marker.x, marker.y, mapSize, 4 * Map.gridDiameter)) {
-                if (!this.isDeepSeaActive) {
-                    this.rustplus.sendEvent(
-                        this.rustplus.notificationSettings.deepSeaDetectedSetting,
-                        this.client.intlGet(this.rustplus.guildId, 'deepSeaDetected'),
-                        'deepSea',
-                        Constants.COLOR_DEEP_SEA_DETECTED);
-                    this.deepSeas.push(marker);
-                    this.isDeepSeaActive = true;
-                    this.timeSinceDeepSeaSpawned = new Date();
-                    this.timeSinceDeepSeaWasOnMap = null;
-                }
-            }
-
             this.knownVendingMachines.push({ x: marker.x, y: marker.y });
             this.vendingMachines.push(marker);
         }
 
         /* VendingMachine markers that have left. */
         for (let marker of leftMarkers) {
-            let mapSize = this.rustplus.info.correctedMapSize;
             this.vendingMachines = this.vendingMachines.filter(e => e.x !== marker.x || e.y !== marker.y);
-            if (this.deepSeas.some(e => e.id === marker.id) && 
-            Map.isOutsideGridSystem(marker.x, marker.y, mapSize, 4 * Map.gridDiameter) && 
-            this.isDeepSeaActive) {
-                this.rustplus.sendEvent(
-                    this.rustplus.notificationSettings.deepSeaLeftMapSetting,
-                    this.client.intlGet(this.rustplus.guildId, 'deepSeaLeftMap'),
-                    'deepSea',
-                    Constants.COLOR_DEEP_SEA_LEFT_MAP);
-                this.isDeepSeaActive = false;
-                this.timeSinceDeepSeaWasOnMap = new Date();
-                this.timeSinceDeepSeaSpawned = null;
-                this.deepSeas = this.deepSeas.filter(e => e.id !== marker.id);
-            }
         }
 
         /* VendingMachine markers that still remains. */
@@ -375,6 +353,41 @@ class MapMarkers {
             vendingMachine.id = marker.id;
             vendingMachine.location = pos;
             vendingMachine.sellOrders = marker.sellOrders;
+        }
+
+        let mapSize = this.rustplus.info.correctedMapSize;
+        let deepSeaMarkers = this.vendingMachines.filter(marker =>
+            Map.isOutsideGridSystem(marker.x, marker.y, mapSize, 4 * Map.gridDiameter));
+
+        if (deepSeaMarkers.length > 0) {
+            if (!this.isDeepSeaActive) {
+                this.rustplus.sendEvent(
+                    this.rustplus.notificationSettings.deepSeaDetectedSetting,
+                    this.client.intlGet(this.rustplus.guildId, 'deepSeaDetected'),
+                    'deepSea',
+                    Constants.COLOR_DEEP_SEA_DETECTED);
+                if (this.timeSinceDeepSeaSpawned === null) {
+                    this.timeSinceDeepSeaSpawned = new Date();
+                }
+                this.timeSinceDeepSeaWasOnMap = null;
+                this.isDeepSeaActive = true;
+            }
+
+            this.deepSeas = deepSeaMarkers.slice();
+        }
+        else {
+            if (this.isDeepSeaActive) {
+                this.rustplus.sendEvent(
+                    this.rustplus.notificationSettings.deepSeaLeftMapSetting,
+                    this.client.intlGet(this.rustplus.guildId, 'deepSeaLeftMap'),
+                    'deepSea',
+                    Constants.COLOR_DEEP_SEA_LEFT_MAP);
+                this.isDeepSeaActive = false;
+                this.timeSinceDeepSeaWasOnMap = new Date();
+                this.timeSinceDeepSeaSpawned = null;
+            }
+
+            this.deepSeas = [];
         }
     }
 

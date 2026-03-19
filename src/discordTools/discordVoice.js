@@ -19,8 +19,10 @@
 
 */
 const { getVoiceConnection, createAudioPlayer, createAudioResource } = require('@discordjs/voice');
-const Actors = require('../staticFiles/actors.json');
+const getStaticFilesStorage = require('../util/getStaticFilesStorage');
 const Client = require('../../index.ts');
+
+const Actors = getStaticFilesStorage().getDatasetObject('actors');
 
 module.exports = {
     sendDiscordVoiceMessage: async function (guildId, text) {

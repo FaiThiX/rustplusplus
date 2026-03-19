@@ -1,4 +1,4 @@
-FROM node:18
+FROM node:22-bookworm-slim
 
 RUN apt-get update && apt-get install -y graphicsmagick && apt-get clean
 

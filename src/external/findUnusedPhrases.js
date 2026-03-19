@@ -71,6 +71,7 @@ for (const phrase of phrasesKeys) {
 
     counter += 1;
 }
-
+console.log('\n!!!"unhandledRejection" is in index.ts and is not indexed in this search!!!\n');
+console.log('\n!!!"...Interaction" is used in a function in DiscordBot.js (logInteraction())!!!\n');
 console.log('\nUnused Phrases:\n');
 console.log(unusedPhrases);

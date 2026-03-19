@@ -37,6 +37,7 @@ const Logger = require('./Logger.js');
 const Map = require('../util/map.js');
 const connectRustPlusWebSocket = require('../util/rustPlusConnect.js');
 const RustPlusProxy = require('../util/rustPlusProxy.js');
+const getRuntimeDataStorage = require('../util/getRuntimeDataStorage');
 const RustPlusLite = require('../structures/RustPlusLite');
 const TeamHandler = require('../handlers/teamHandler.js');
 const Timer = require('../util/timer.js');
@@ -51,6 +52,8 @@ class RustPlus extends RustPlusLib {
 
         this.serverId = `${this.server}-${this.port}`;
         this.guildId = guildId;
+        this.runtimeDataStorage = getRuntimeDataStorage();
+        this.persistentRuntimeStateRestored = false;
 
         this.leaderRustPlusInstance = null;
         this.uptimeServer = null;
@@ -139,6 +142,321 @@ class RustPlus extends RustPlusLib {
         for (const [name, location] of Object.entries(instance.serverList[this.serverId].markers)) {
             this.markers[name] = { x: location.x, y: location.y, location: location.location };
         }
+    }
+
+    getRuntimeState(stateKey) {
+        return this.runtimeDataStorage.getServerState(this.guildId, this.serverId, stateKey);
+    }
+
+    setRuntimeState(stateKey, value) {
+        this.runtimeDataStorage.setServerState(this.guildId, this.serverId, stateKey, value);
+    }
+
+    deleteRuntimeState(stateKey) {
+        this.runtimeDataStorage.deleteServerState(this.guildId, this.serverId, stateKey);
+    }
+
+    dateToTimestamp(date) {
+        return (date instanceof Date) ? date.getTime() : null;
+    }
+
+    timestampToDate(timestamp) {
+        if (typeof (timestamp) !== 'number' || !Number.isFinite(timestamp) || timestamp <= 0) {
+            return null;
+        }
+        return new Date(timestamp);
+    }
+
+    getTimerEndAtMs(timer) {
+        if (!timer || !timer.getStateRunning()) return null;
+        const remainingMs = timer.getTimeLeft();
+        if (typeof (remainingMs) !== 'number' || remainingMs <= 0) return null;
+        return Date.now() + remainingMs;
+    }
+
+    persistCustomTimersState() {
+        const persistedTimers = [];
+        for (const [id, content] of Object.entries(this.timers)) {
+            if (!content || !content.timer || typeof (content.message) !== 'string') continue;
+
+            const endAtMs = this.getTimerEndAtMs(content.timer);
+            if (endAtMs === null) continue;
+
+            persistedTimers.push({
+                id: parseInt(id),
+                message: content.message,
+                endAtMs: endAtMs
+            });
+        }
+
+        if (persistedTimers.length === 0) {
+            this.deleteRuntimeState('customTimers');
+            return;
+        }
+
+        persistedTimers.sort((a, b) => a.id - b.id);
+        this.setRuntimeState('customTimers', { timers: persistedTimers });
+    }
+
+    restoreCustomTimersState() {
+        const persisted = this.getRuntimeState('customTimers');
+        if (!persisted || !Array.isArray(persisted.timers)) return;
+
+        for (const timerData of persisted.timers) {
+            const id = parseInt(timerData.id);
+            if (!Number.isInteger(id) || id < 0) continue;
+            if (this.timers.hasOwnProperty(id)) continue;
+            if (typeof (timerData.message) !== 'string' || timerData.message === '') continue;
+
+            const endAtMs = Number(timerData.endAtMs);
+            if (!Number.isFinite(endAtMs)) continue;
+            const remainingMs = Math.floor(endAtMs - Date.now());
+            if (remainingMs <= 0) continue;
+
+            this.timers[id] = {
+                timer: new Timer.timer(
+                    () => {
+                        this.sendInGameMessage(Client.client.intlGet(this.guildId, 'timer', {
+                            message: timerData.message
+                        }), 'TIMER');
+                        delete this.timers[id];
+                        this.persistCustomTimersState();
+                    },
+                    remainingMs
+                ),
+                message: timerData.message
+            };
+            this.timers[id].timer.start();
+        }
+
+        this.persistCustomTimersState();
+    }
+
+    buildMapMarkersRuntimeState() {
+        if (!this.mapMarkers) return null;
+
+        const cargoShipEgressTimers = [];
+        for (const [id, timer] of Object.entries(this.mapMarkers.cargoShipEgressTimers)) {
+            const endAtMs = this.getTimerEndAtMs(timer);
+            if (endAtMs === null) continue;
+
+            const parsedId = parseInt(id);
+            if (!Number.isInteger(parsedId)) continue;
+            const cargoShip = this.mapMarkers.getMarkerByTypeId(this.mapMarkers.types.CargoShip, parsedId);
+
+            cargoShipEgressTimers.push({
+                id: parsedId,
+                endAtMs: endAtMs,
+                x: cargoShip ? cargoShip.x : null,
+                y: cargoShip ? cargoShip.y : null
+            });
+        }
+
+        const cargoShipsState = this.mapMarkers.cargoShips.map(cargoShip => ({
+            id: cargoShip.id,
+            x: cargoShip.x,
+            y: cargoShip.y,
+            onItsWayOut: cargoShip.onItsWayOut === true
+        }));
+
+        return {
+            timeSinceCargoShipWasOutMs: this.dateToTimestamp(this.mapMarkers.timeSinceCargoShipWasOut),
+            timeSinceCH47WasOutMs: this.dateToTimestamp(this.mapMarkers.timeSinceCH47WasOut),
+            timeSinceSmallOilRigWasTriggeredMs: this.dateToTimestamp(this.mapMarkers.timeSinceSmallOilRigWasTriggered),
+            timeSinceLargeOilRigWasTriggeredMs: this.dateToTimestamp(this.mapMarkers.timeSinceLargeOilRigWasTriggered),
+            timeSincePatrolHelicopterWasOnMapMs: this.dateToTimestamp(this.mapMarkers.timeSincePatrolHelicopterWasOnMap),
+            timeSincePatrolHelicopterWasDestroyedMs:
+                this.dateToTimestamp(this.mapMarkers.timeSincePatrolHelicopterWasDestroyed),
+            patrolHelicopterDestroyedLocation: this.mapMarkers.patrolHelicopterDestroyedLocation,
+            timeSinceTravelingVendorWasOnMapMs: this.dateToTimestamp(this.mapMarkers.timeSinceTravelingVendorWasOnMap),
+            timeSinceDeepSeaSpawnedMs: this.dateToTimestamp(this.mapMarkers.timeSinceDeepSeaSpawned),
+            timeSinceDeepSeaWasOnMapMs: this.dateToTimestamp(this.mapMarkers.timeSinceDeepSeaWasOnMap),
+            crateSmallOilRigLocation: this.mapMarkers.crateSmallOilRigLocation,
+            crateLargeOilRigLocation: this.mapMarkers.crateLargeOilRigLocation,
+            crateSmallOilRigUnlockAtMs: this.getTimerEndAtMs(this.mapMarkers.crateSmallOilRigTimer),
+            crateLargeOilRigUnlockAtMs: this.getTimerEndAtMs(this.mapMarkers.crateLargeOilRigTimer),
+            cargoShipEgressTimers: cargoShipEgressTimers,
+            cargoShipsState: cargoShipsState
+        };
+    }
+
+    persistMapMarkersRuntimeState() {
+        const state = this.buildMapMarkersRuntimeState();
+        if (state === null) return;
+        this.setRuntimeState('mapMarkers', state);
+    }
+
+    restoreOilRigCrateTimerFromState(type, unlockAtMs, location) {
+        if (!this.mapMarkers) return;
+
+        const safeLocation = (typeof (location) === 'string' && location !== '') ? location : null;
+        const safeUnlockAtMs = Number(unlockAtMs);
+        const remainingMs = Number.isFinite(safeUnlockAtMs) ? Math.floor(safeUnlockAtMs - Date.now()) : null;
+
+        if (type === 'small') {
+            if (this.mapMarkers.crateSmallOilRigTimer) {
+                this.mapMarkers.crateSmallOilRigTimer.stop();
+                this.mapMarkers.crateSmallOilRigTimer = null;
+            }
+
+            this.mapMarkers.crateSmallOilRigLocation = safeLocation;
+
+            if (safeLocation !== null && remainingMs !== null && remainingMs > 0) {
+                this.mapMarkers.crateSmallOilRigTimer = new Timer.timer(
+                    this.mapMarkers.notifyCrateSmallOilRigOpen.bind(this.mapMarkers),
+                    remainingMs,
+                    safeLocation
+                );
+                this.mapMarkers.crateSmallOilRigTimer.start();
+            }
+        }
+        else if (type === 'large') {
+            if (this.mapMarkers.crateLargeOilRigTimer) {
+                this.mapMarkers.crateLargeOilRigTimer.stop();
+                this.mapMarkers.crateLargeOilRigTimer = null;
+            }
+
+            this.mapMarkers.crateLargeOilRigLocation = safeLocation;
+
+            if (safeLocation !== null && remainingMs !== null && remainingMs > 0) {
+                this.mapMarkers.crateLargeOilRigTimer = new Timer.timer(
+                    this.mapMarkers.notifyCrateLargeOilRigOpen.bind(this.mapMarkers),
+                    remainingMs,
+                    safeLocation
+                );
+                this.mapMarkers.crateLargeOilRigTimer.start();
+            }
+        }
+    }
+
+    findCargoShipForPersistedState(cargoData, reservedCargoShipIds = new Set()) {
+        if (!this.mapMarkers) return null;
+
+        const availableCargoShips = this.mapMarkers.cargoShips.filter(cargoShip => !reservedCargoShipIds.has(cargoShip.id));
+        if (availableCargoShips.length === 0) return null;
+
+        const persistedId = parseInt(cargoData.id);
+        if (Number.isInteger(persistedId)) {
+            const cargoShipById = availableCargoShips.find(cargoShip => cargoShip.id === persistedId);
+            if (cargoShipById) return cargoShipById;
+        }
+
+        const persistedX = cargoData.x;
+        const persistedY = cargoData.y;
+        if (typeof (persistedX) === 'number' && Number.isFinite(persistedX) &&
+            typeof (persistedY) === 'number' && Number.isFinite(persistedY)) {
+            let closestCargoShip = null;
+            let closestDistance = Number.POSITIVE_INFINITY;
+
+            for (const cargoShip of availableCargoShips) {
+                const distance = Map.getDistance(cargoShip.x, cargoShip.y, persistedX, persistedY);
+                if (distance < closestDistance) {
+                    closestDistance = distance;
+                    closestCargoShip = cargoShip;
+                }
+            }
+
+            if (closestCargoShip !== null) return closestCargoShip;
+        }
+
+        if (availableCargoShips.length === 1) {
+            return availableCargoShips[0];
+        }
+
+        return null;
+    }
+
+    restoreMapMarkersRuntimeState() {
+        if (!this.mapMarkers) return;
+
+        const persisted = this.getRuntimeState('mapMarkers');
+        if (!persisted || typeof (persisted) !== 'object') return;
+
+        this.mapMarkers.timeSinceCargoShipWasOut = this.timestampToDate(persisted.timeSinceCargoShipWasOutMs);
+        this.mapMarkers.timeSinceCH47WasOut = this.timestampToDate(persisted.timeSinceCH47WasOutMs);
+        this.mapMarkers.timeSinceSmallOilRigWasTriggered =
+            this.timestampToDate(persisted.timeSinceSmallOilRigWasTriggeredMs);
+        this.mapMarkers.timeSinceLargeOilRigWasTriggered =
+            this.timestampToDate(persisted.timeSinceLargeOilRigWasTriggeredMs);
+        this.mapMarkers.timeSincePatrolHelicopterWasOnMap =
+            this.timestampToDate(persisted.timeSincePatrolHelicopterWasOnMapMs);
+        this.mapMarkers.timeSincePatrolHelicopterWasDestroyed =
+            this.timestampToDate(persisted.timeSincePatrolHelicopterWasDestroyedMs);
+        this.mapMarkers.timeSinceTravelingVendorWasOnMap =
+            this.timestampToDate(persisted.timeSinceTravelingVendorWasOnMapMs);
+        this.mapMarkers.timeSinceDeepSeaSpawned = this.timestampToDate(persisted.timeSinceDeepSeaSpawnedMs);
+        this.mapMarkers.timeSinceDeepSeaWasOnMap = this.timestampToDate(persisted.timeSinceDeepSeaWasOnMapMs);
+        this.mapMarkers.patrolHelicopterDestroyedLocation =
+            typeof (persisted.patrolHelicopterDestroyedLocation) === 'string' ?
+                persisted.patrolHelicopterDestroyedLocation : null;
+
+        this.mapMarkers.isDeepSeaActive = this.mapMarkers.timeSinceDeepSeaSpawned !== null;
+
+        this.restoreOilRigCrateTimerFromState(
+            'small',
+            persisted.crateSmallOilRigUnlockAtMs,
+            persisted.crateSmallOilRigLocation
+        );
+        this.restoreOilRigCrateTimerFromState(
+            'large',
+            persisted.crateLargeOilRigUnlockAtMs,
+            persisted.crateLargeOilRigLocation
+        );
+
+        for (const cargoShip of this.mapMarkers.cargoShips) {
+            cargoShip.onItsWayOut = false;
+        }
+
+        if (Array.isArray(persisted.cargoShipEgressTimers)) {
+            for (const [id, timer] of Object.entries(this.mapMarkers.cargoShipEgressTimers)) {
+                if (timer) timer.stop();
+                delete this.mapMarkers.cargoShipEgressTimers[id];
+            }
+
+            const reservedCargoShipIds = new Set();
+            for (const timerData of persisted.cargoShipEgressTimers) {
+                const cargoShip = this.findCargoShipForPersistedState(timerData, reservedCargoShipIds);
+                if (!cargoShip) continue;
+
+                const endAtMs = Number(timerData.endAtMs);
+                if (!Number.isFinite(endAtMs)) continue;
+                const remainingMs = Math.floor(endAtMs - Date.now());
+                if (remainingMs <= 0) continue;
+
+                const id = cargoShip.id;
+                reservedCargoShipIds.add(id);
+                cargoShip.onItsWayOut = false;
+
+                this.mapMarkers.cargoShipEgressTimers[id] = new Timer.timer(
+                    this.mapMarkers.notifyCargoShipEgress.bind(this.mapMarkers),
+                    remainingMs,
+                    id
+                );
+                this.mapMarkers.cargoShipEgressTimers[id].start();
+            }
+        }
+
+        if (Array.isArray(persisted.cargoShipsState)) {
+            const reservedCargoShipIds = new Set();
+            for (const cargoData of persisted.cargoShipsState) {
+                if (!cargoData || cargoData.onItsWayOut !== true) continue;
+
+                const cargoShip = this.findCargoShipForPersistedState(cargoData, reservedCargoShipIds);
+                if (!cargoShip) continue;
+                if (this.mapMarkers.cargoShipEgressTimers[cargoShip.id]) continue;
+
+                cargoShip.onItsWayOut = true;
+                reservedCargoShipIds.add(cargoShip.id);
+            }
+        }
+    }
+
+    restorePersistentRuntimeState() {
+        if (this.persistentRuntimeStateRestored) return;
+
+        this.restoreMapMarkersRuntimeState();
+        this.restoreCustomTimersState();
+        this.persistentRuntimeStateRestored = true;
     }
 
     build() {
@@ -2644,12 +2962,14 @@ class RustPlus extends RustPlusLib {
                         () => {
                             this.sendInGameMessage(Client.client.intlGet(this.guildId, 'timer',
                                 { message: message }), 'TIMER');
-                            delete this.timers[id]
+                            delete this.timers[id];
+                            this.persistCustomTimersState();
                         },
                         timeSeconds * 1000),
                     message: message
                 };
                 this.timers[id].timer.start();
+                this.persistCustomTimersState();
 
                 return Client.client.intlGet(this.guildId, 'timerSet', { time: time });
             } break;
@@ -2665,6 +2985,7 @@ class RustPlus extends RustPlusLib {
 
                 this.timers[id].timer.stop();
                 delete this.timers[id];
+                this.persistCustomTimersState();
 
                 return Client.client.intlGet(this.guildId, 'timerRemoved', { id: id });
             } break;
@@ -2900,10 +3221,9 @@ class RustPlus extends RustPlusLib {
         const deepSeaWipeDuration = deepSeaSettings.deepSeaWipeDurationMs;
         const wasOnMap = this.mapMarkers.timeSinceDeepSeaWasOnMap;
         const isOnMap = this.mapMarkers.timeSinceDeepSeaSpawned;
-        const deepSea = this.mapMarkers.deepSeas[0];
         const now = new Date();
 
-        if (deepSea && isOnMap !== null) {
+        if (isOnMap !== null) {
             const secondsLeft = Math.max(0, (deepSeaWipeDuration - (now - isOnMap)) / 1000);
             if (isInfoChannel) {
                 return Client.client.intlGet(this.guildId, 'activeFor', {
