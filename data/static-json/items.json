@@ -164,6 +164,11 @@
         "name": "Ice Metal Facemask",
         "description": "A protective facemask which provides the user with excellent head protection from all forms of attacks."
     },
+    "112268546": {
+        "shortname": "workbench.upgrade.reinforced",
+        "name": "Reinforced Workbench Upgrade",
+        "description": "Increases the workbench's max HP by 150% and grants explosive damage resistance."
+    },
     "120820987": {
         "shortname": "pie.chicken",
         "name": "Chicken Pie",
@@ -819,6 +824,11 @@
         "name": "Krieg Storage Crates",
         "description": "Military-grade crates designed for efficient storage and durability. A staple of any well-supplied outpost."
     },
+    "655356057": {
+        "shortname": "base.horizontal.barrel",
+        "name": "Base horizontal storage barrel",
+        "description": "Base horizontal storage barrel"
+    },
     "656371026": {
         "shortname": "carburetor3",
         "name": "High Quality Carburetor",
@@ -998,6 +1008,11 @@
         "shortname": "shotgun.pump",
         "name": "Pump Shotgun",
         "description": "A Shotgun. Fires 8 rounds."
+    },
+    "798382300": {
+        "shortname": "workbench.upgrade.accelerated",
+        "name": "Accelerated Workbench Upgrade",
+        "description": "Crafting speed increases by 25% for each item already completed in the same batch."
     },
     "803222026": {
         "shortname": "box.repair.bench",
@@ -1217,7 +1232,12 @@
     "962186730": {
         "shortname": "tincan.alarm",
         "name": "Tin Can Alarm",
-        "description": "A primitive perimeter alarm made from hanging tin cans. Clatters loudly when disturbed, alerting you to any trespassers. Simple but effective."
+        "description": "A primitive perimeter alarm made from hanging tin cans. Clatters loudly when disturbed, alerting you to any trespassers. Can be rigged with grenades or other throwables."
+    },
+    "963150711": {
+        "shortname": "ammo.mortar.basic",
+        "name": "Mortar Shell",
+        "description": "A high explosive mortar shell that deals minor structural damage on impact."
     },
     "963400638": {
         "shortname": "speechbubbleballoon2025",
@@ -1439,11 +1459,6 @@
         "name": "Candy Cane",
         "description": "A very old candy cane from 2014"
     },
-    "1127417055": {
-        "shortname": "armoured.ladder.hatch",
-        "name": "Armoured Ladder Hatch",
-        "description": "An armoured hatch that opens and changes into a ladder."
-    },
     "1130729138": {
         "shortname": "fish.spoiled",
         "name": "Spoiled Fish Meat",
@@ -1574,6 +1589,11 @@
         "name": "Two Sided Hanging Sign",
         "description": "A double sided hanging sign, to attach to buildings."
     },
+    "1215602244": {
+        "shortname": "workbench.upgrade.efficiency",
+        "name": "Efficiency Workbench Upgrade",
+        "description": "10% chance to produce a free bonus item when crafting in batches. Ineffective when crafting explosive and raid related items."
+    },
     "1221063409": {
         "shortname": "door.double.hinged.toptier",
         "name": "Armored Double Door",
@@ -1687,7 +1707,7 @@
     "1293102274": {
         "shortname": "electric.xorswitch",
         "name": "XOR Switch",
-        "description": "An exclusive-or logic gate that allows electrical passthrough if ONLY ONE input receives power, passthrough amount is whichever single input is active. If BOTH inputs recieve power, passthrough will be zero."
+        "description": "An exclusive-or logic gate that allows electrical passthrough if ONLY ONE input receives power, passthrough amount is whichever single input is active. If BOTH inputs receive power, passthrough will be zero."
     },
     "1295301598": {
         "shortname": "latexballoon2025",
@@ -1954,6 +1974,11 @@
         "name": "Cooking Workbench",
         "description": "Used to cook advanced recipes for food, fuel, ammunition and explosives."
     },
+    "1459828804": {
+        "shortname": "mortar.deployable",
+        "name": "Mortar",
+        "description": "The Mortar fires in an arcing trajectory and favors volume over precision. Pairs well with binoculars."
+    },
     "1463862472": {
         "shortname": "wantedposter.wantedposter4",
         "name": "Wanted Poster 4",
@@ -1968,6 +1993,11 @@
         "shortname": "pie.pork",
         "name": "Pork Pie",
         "description": "Tempting pork pie, provides a boost to hunger, health and hydration. Improves healing rate from other sources for a short time."
+    },
+    "1470387662": {
+        "shortname": "workbench.upgrade.range",
+        "name": "Range Workbench Upgrade",
+        "description": "Doubles the workbench crafting radius, letting you craft from twice as far away."
     },
     "1478091698": {
         "shortname": "weapon.mod.muzzlebrake",
@@ -2859,6 +2889,11 @@
         "name": "Triangle Ladder Hatch",
         "description": "A hatch that opens and changes into a ladder."
     },
+    "2045583965": {
+        "shortname": "base.vertical.barrel",
+        "name": "Base vertical storage barrel",
+        "description": "Base vertical storage barrel"
+    },
     "2047789913": {
         "shortname": "clothing.mod.armorinsert_lead",
         "name": "Lead Armor Insert",
@@ -3024,6 +3059,11 @@
         "name": "Advanced Harvesting Tea",
         "description": "An advanced harvesting tea, provides hydration and temporarily boosts the amount of resources you receive from harvesting corpses a moderate amount."
     },
+    "-486432631": {
+        "shortname": "ammo.mortar.fragment",
+        "name": "Fragmentation Mortar Shell",
+        "description": "A fragmentation mortar shell, dealing lethal damage in a large area on impact."
+    },
     "-2097376851": {
         "shortname": "ammo.nailgun.nails",
         "name": "Nailgun Nails",
@@ -3088,11 +3128,6 @@
         "shortname": "antiradpills",
         "name": "Anti-Radiation Pills",
         "description": "Taking these pills will lower your radiation level. WARNING: May cause extreme dehydration."
-    },
-    "-601133933": {
-        "shortname": "armoured.triangle.ladder.hatch",
-        "name": "Armoured Triangle Laddder Hatch",
-        "description": "An armoured hatch that opens and changes into a ladder."
     },
     "-1023065463": {
         "shortname": "arrow.hv",
@@ -3208,6 +3243,16 @@
         "shortname": "barricade.sandbags",
         "name": "Sandbag Barricade",
         "description": "A protective barricade made out of Sand Bags."
+    },
+    "-1024954624": {
+        "shortname": "base.half.shelves",
+        "name": "Base half shelves",
+        "description": "Base half shelves"
+    },
+    "-1695149731": {
+        "shortname": "base.single.shelves",
+        "name": "Base single shelves",
+        "description": "Base single shelves"
     },
     "-143481979": {
         "shortname": "basicblueprintfragment",
@@ -5953,6 +5998,36 @@
         "shortname": "woodtea.pure",
         "name": "Pure Wood Tea",
         "description": "A pure wood tea, temporarily increases the yield from cutting trees a large amount."
+    },
+    "-770390391": {
+        "shortname": "workbench.upgrade.comfort",
+        "name": "Comfort Workbench Upgrade",
+        "description": "Provides a 100% comfort zone around the workbench for those long crafting sessions."
+    },
+    "-1953279770": {
+        "shortname": "workbench.upgrade.defensive",
+        "name": "Defensive Workbench Upgrade",
+        "description": "Armor or clothing compatible with insert slots will roll an additional slot when crafted using this upgrade."
+    },
+    "-180862419": {
+        "shortname": "workbench.upgrade.prototype",
+        "name": "Prototype Workbench Upgrade",
+        "description": "Allows unlocking any tech tree item regardless of progression. Cost is doubled and there is a 25% chance of failure that still consumes resources."
+    },
+    "-286541059": {
+        "shortname": "workbench.upgrade.recyclebin",
+        "name": "Recycle Bin Workbench Upgrade",
+        "description": "Crafting at a workbench with this upgrade has a chance to refund up to 10% of the ingredient costs back to you in raw material form."
+    },
+    "-160105346": {
+        "shortname": "workbench.upgrade.salvage",
+        "name": "Salvage Workbench Upgrade",
+        "description": "Reduces the scrap cost of all tech tree unlocks at this bench by 20%."
+    },
+    "-1536343135": {
+        "shortname": "workbench.upgrade.surplus",
+        "name": "Surplus Workbench Upgrade",
+        "description": "20% chance to produce a random surplus part (1-8) when crafting. Surplus parts are used in special alternate recipes."
     },
     "-41896755": {
         "shortname": "workbench2",

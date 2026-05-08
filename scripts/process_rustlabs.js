@@ -22,7 +22,7 @@
 const Fs = require('fs');
 const Path = require('path');
 
-const Utils = require('../util/utils.js');
+const Utils = require('../src/util/utils.js');
 
 let Chromium = null;
 try {
@@ -148,7 +148,7 @@ const RUSTLABS_ALL_OTHER_REGEX = /\/entity\/(.*?)">(.*?)</gm
 
 /* Global variables */
 
-const ITEMS = JSON.parse(Fs.readFileSync(Path.join(__dirname, '..', 'staticFiles', 'items.json'), 'utf8'));
+const ITEMS = JSON.parse(Fs.readFileSync(Path.join(__dirname, '..', 'data', 'static-json', 'items.json'), 'utf8'));
 
 const rustlabsLootContainers = new Object();
 const rustlabsBuildingBlocks = new Object();

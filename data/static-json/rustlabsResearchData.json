@@ -28,7 +28,7 @@
     "workbench": {
       "type": "-41896755",
       "scrap": 60,
-      "totalScrap": 690
+      "totalScrap": 750
     }
   },
   "60528587": {
@@ -56,7 +56,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 30,
-      "totalScrap": 300
+      "totalScrap": 360
     }
   },
   "143803535": {
@@ -72,7 +72,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 60,
-      "totalScrap": 240
+      "totalScrap": 300
     }
   },
   "171931394": {
@@ -144,7 +144,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 60,
-      "totalScrap": 360
+      "totalScrap": 420
     }
   },
   "304481038": {
@@ -196,7 +196,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 15,
-      "totalScrap": 150
+      "totalScrap": 210
     }
   },
   "479143914": {
@@ -208,7 +208,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 15,
-      "totalScrap": 225
+      "totalScrap": 285
     }
   },
   "528668503": {
@@ -224,7 +224,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 30,
-      "totalScrap": 375
+      "totalScrap": 435
     }
   },
   "559147458": {
@@ -256,7 +256,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 15,
-      "totalScrap": 225
+      "totalScrap": 285
     }
   },
   "602628465": {
@@ -279,12 +279,20 @@
       "totalScrap": 300
     }
   },
+  "607785075": {
+    "researchTable": 60,
+    "workbench": {
+      "type": "-1607980696",
+      "scrap": 60,
+      "totalScrap": 360
+    }
+  },
   "610102428": {
     "researchTable": 15,
     "workbench": {
       "type": "210787554",
       "scrap": 15,
-      "totalScrap": 255
+      "totalScrap": 315
     }
   },
   "613961768": {
@@ -312,7 +320,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 15,
-      "totalScrap": 225
+      "totalScrap": 285
     }
   },
   "656371027": {
@@ -320,7 +328,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 15,
-      "totalScrap": 210
+      "totalScrap": 270
     }
   },
   "656371028": {
@@ -328,7 +336,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 15,
-      "totalScrap": 195
+      "totalScrap": 255
     }
   },
   "665332906": {
@@ -336,7 +344,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 15,
-      "totalScrap": 90
+      "totalScrap": 150
     }
   },
   "671063303": {
@@ -360,7 +368,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 15,
-      "totalScrap": 270
+      "totalScrap": 330
     }
   },
   "762289806": {
@@ -368,7 +376,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 15,
-      "totalScrap": 90
+      "totalScrap": 150
     }
   },
   "785728077": {
@@ -452,7 +460,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 15,
-      "totalScrap": 225
+      "totalScrap": 285
     }
   },
   "895374329": {
@@ -460,7 +468,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 60,
-      "totalScrap": 240
+      "totalScrap": 300
     }
   },
   "926800282": {
@@ -468,7 +476,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 15,
-      "totalScrap": 210
+      "totalScrap": 270
     }
   },
   "935692442": {
@@ -524,7 +532,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 15,
-      "totalScrap": 225
+      "totalScrap": 285
     }
   },
   "1072924620": {
@@ -532,7 +540,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 15,
-      "totalScrap": 225
+      "totalScrap": 285
     }
   },
   "1079279582": {
@@ -568,7 +576,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 15,
-      "totalScrap": 75
+      "totalScrap": 135
     }
   },
   "1145722690": {
@@ -584,7 +592,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 30,
-      "totalScrap": 240
+      "totalScrap": 300
     }
   },
   "1153652756": {
@@ -600,7 +608,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 15,
-      "totalScrap": 210
+      "totalScrap": 270
     }
   },
   "1158340332": {
@@ -608,7 +616,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 15,
-      "totalScrap": 225
+      "totalScrap": 285
     }
   },
   "1158340334": {
@@ -616,7 +624,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 15,
-      "totalScrap": 195
+      "totalScrap": 255
     }
   },
   "1159991980": {
@@ -632,7 +640,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 30,
-      "totalScrap": 90
+      "totalScrap": 150
     }
   },
   "1168916338": {
@@ -648,7 +656,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 15,
-      "totalScrap": 240
+      "totalScrap": 300
     }
   },
   "1174484438": {
@@ -656,7 +664,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 15,
-      "totalScrap": 75
+      "totalScrap": 135
     }
   },
   "1177596584": {
@@ -664,7 +672,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 60,
-      "totalScrap": 435
+      "totalScrap": 495
     }
   },
   "1181207482": {
@@ -680,7 +688,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 60,
-      "totalScrap": 300
+      "totalScrap": 360
     }
   },
   "1199391518": {
@@ -700,7 +708,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 30,
-      "totalScrap": 135
+      "totalScrap": 195
     }
   },
   "1234880403": {
@@ -744,7 +752,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 15,
-      "totalScrap": 135
+      "totalScrap": 195
     }
   },
   "1296788329": {
@@ -776,7 +784,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 15,
-      "totalScrap": 195
+      "totalScrap": 255
     }
   },
   "1353298668": {
@@ -796,7 +804,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 15,
-      "totalScrap": 285
+      "totalScrap": 345
     }
   },
   "1373240771": {
@@ -820,7 +828,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 60,
-      "totalScrap": 180
+      "totalScrap": 240
     }
   },
   "1382263453": {
@@ -840,7 +848,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 15,
-      "totalScrap": 210
+      "totalScrap": 270
     }
   },
   "1414245162": {
@@ -860,7 +868,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 15,
-      "totalScrap": 300
+      "totalScrap": 360
     }
   },
   "1430085198": {
@@ -868,7 +876,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 30,
-      "totalScrap": 330
+      "totalScrap": 390
     }
   },
   "1443579727": {
@@ -928,7 +936,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 15,
-      "totalScrap": 285
+      "totalScrap": 345
     }
   },
   "1540934679": {
@@ -956,7 +964,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 60,
-      "totalScrap": 180
+      "totalScrap": 240
     }
   },
   "1569882109": {
@@ -984,7 +992,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 60,
-      "totalScrap": 330
+      "totalScrap": 390
     }
   },
   "1602646136": {
@@ -1008,7 +1016,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 30,
-      "totalScrap": 135
+      "totalScrap": 195
     }
   },
   "1638322904": {
@@ -1052,7 +1060,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 60,
-      "totalScrap": 120
+      "totalScrap": 180
     }
   },
   "1711033574": {
@@ -1136,7 +1144,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 30,
-      "totalScrap": 195
+      "totalScrap": 255
     }
   },
   "1850456855": {
@@ -1152,7 +1160,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 60,
-      "totalScrap": 300
+      "totalScrap": 360
     }
   },
   "1877339384": {
@@ -1168,7 +1176,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 15,
-      "totalScrap": 195
+      "totalScrap": 255
     }
   },
   "1883981800": {
@@ -1176,7 +1184,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 15,
-      "totalScrap": 225
+      "totalScrap": 285
     }
   },
   "1883981801": {
@@ -1184,7 +1192,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 15,
-      "totalScrap": 210
+      "totalScrap": 270
     }
   },
   "1946219319": {
@@ -1272,7 +1280,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 30,
-      "totalScrap": 165
+      "totalScrap": 225
     }
   },
   "2036395619": {
@@ -1316,7 +1324,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 30,
-      "totalScrap": 120
+      "totalScrap": 180
     }
   },
   "2090395347": {
@@ -1324,7 +1332,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 30,
-      "totalScrap": 45
+      "totalScrap": 105
     }
   },
   "2100007442": {
@@ -1332,7 +1340,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 15,
-      "totalScrap": 105
+      "totalScrap": 165
     }
   },
   "2114754781": {
@@ -1368,7 +1376,7 @@
     "workbench": {
       "type": "-41896755",
       "scrap": 60,
-      "totalScrap": 750
+      "totalScrap": 870
     }
   },
   "-2124352573": {
@@ -1379,6 +1387,14 @@
     "researchTable": 60,
     "workbench": {
       "type": "210787554",
+      "scrap": 60,
+      "totalScrap": 420
+    }
+  },
+  "-478923685": {
+    "researchTable": 60,
+    "workbench": {
+      "type": "-1607980696",
       "scrap": 60,
       "totalScrap": 360
     }
@@ -1396,7 +1412,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 120,
-      "totalScrap": 495
+      "totalScrap": 555
     }
   },
   "-2072273936": {
@@ -1440,7 +1456,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 15,
-      "totalScrap": 105
+      "totalScrap": 165
     }
   },
   "-851288382": {
@@ -1476,7 +1492,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 15,
-      "totalScrap": 120
+      "totalScrap": 180
     }
   },
   "-1040518150": {
@@ -1484,7 +1500,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 60,
-      "totalScrap": 420
+      "totalScrap": 480
     }
   },
   "-34498533": {
@@ -1524,7 +1540,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 60,
-      "totalScrap": 180
+      "totalScrap": 240
     }
   },
   "-803263829": {
@@ -1544,7 +1560,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 30,
-      "totalScrap": 270
+      "totalScrap": 330
     }
   },
   "-1950721390": {
@@ -1560,7 +1576,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 30,
-      "totalScrap": 150
+      "totalScrap": 210
     }
   },
   "-1056824343": {
@@ -1576,7 +1592,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 30,
-      "totalScrap": 120
+      "totalScrap": 180
     }
   },
   "-765183617": {
@@ -1600,7 +1616,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 30,
-      "totalScrap": 225
+      "totalScrap": 285
     }
   },
   "-784870360": {
@@ -1608,7 +1624,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 30,
-      "totalScrap": 105
+      "totalScrap": 165
     }
   },
   "-1448252298": {
@@ -1616,7 +1632,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 15,
-      "totalScrap": 90
+      "totalScrap": 150
     }
   },
   "-1673693549": {
@@ -1672,7 +1688,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 15,
-      "totalScrap": 90
+      "totalScrap": 150
     }
   },
   "-196667575": {
@@ -1684,7 +1700,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 60,
-      "totalScrap": 180
+      "totalScrap": 240
     }
   },
   "-265292885": {
@@ -1692,7 +1708,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 15,
-      "totalScrap": 120
+      "totalScrap": 180
     }
   },
   "-1166712463": {
@@ -1700,7 +1716,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 15,
-      "totalScrap": 135
+      "totalScrap": 195
     }
   },
   "-1999722522": {
@@ -1756,7 +1772,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 30,
-      "totalScrap": 150
+      "totalScrap": 210
     }
   },
   "-1102429027": {
@@ -1784,7 +1800,7 @@
     "workbench": {
       "type": "-41896755",
       "scrap": 60,
-      "totalScrap": 810
+      "totalScrap": 570
     }
   },
   "-691113464": {
@@ -1816,7 +1832,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 15,
-      "totalScrap": 225
+      "totalScrap": 285
     }
   },
   "-1023065463": {
@@ -1884,7 +1900,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 15,
-      "totalScrap": 135
+      "totalScrap": 195
     }
   },
   "-2012470695": {
@@ -1924,7 +1940,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 60,
-      "totalScrap": 240
+      "totalScrap": 300
     }
   },
   "-1992717673": {
@@ -1940,7 +1956,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 30,
-      "totalScrap": 180
+      "totalScrap": 240
     }
   },
   "-798293154": {
@@ -1948,7 +1964,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 30,
-      "totalScrap": 150
+      "totalScrap": 210
     }
   },
   "-110921842": {
@@ -1976,7 +1992,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 15,
-      "totalScrap": 195
+      "totalScrap": 255
     }
   },
   "-1966748496": {
@@ -2004,7 +2020,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 15,
-      "totalScrap": 210
+      "totalScrap": 270
     }
   },
   "-1819233322": {
@@ -2016,7 +2032,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 30,
-      "totalScrap": 255
+      "totalScrap": 315
     }
   },
   "-194953424": {
@@ -2116,7 +2132,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 15,
-      "totalScrap": 120
+      "totalScrap": 180
     }
   },
   "-1302129395": {
@@ -2156,7 +2172,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 30,
-      "totalScrap": 210
+      "totalScrap": 270
     }
   },
   "-2049214035": {
@@ -2164,7 +2180,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 15,
-      "totalScrap": 105
+      "totalScrap": 165
     }
   },
   "-956706906": {
@@ -2208,7 +2224,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 15,
-      "totalScrap": 135
+      "totalScrap": 195
     }
   },
   "-1044468317": {
@@ -2216,7 +2232,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 15,
-      "totalScrap": 225
+      "totalScrap": 285
     }
   },
   "-566907190": {
@@ -2224,7 +2240,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 15,
-      "totalScrap": 210
+      "totalScrap": 270
     }
   },
   "-699558439": {
@@ -2256,7 +2272,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 30,
-      "totalScrap": 90
+      "totalScrap": 150
     }
   },
   "-1985799200": {
@@ -2328,7 +2344,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 30,
-      "totalScrap": 165
+      "totalScrap": 225
     }
   },
   "-904863145": {
@@ -2416,7 +2432,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 15,
-      "totalScrap": 60
+      "totalScrap": 120
     }
   },
   "-1850297170": {
@@ -2428,7 +2444,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 15,
-      "totalScrap": 75
+      "totalScrap": 135
     }
   },
   "-1138208076": {
@@ -2440,7 +2456,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 30,
-      "totalScrap": 240
+      "totalScrap": 300
     }
   },
   "-582782051": {
@@ -2496,7 +2512,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 15,
-      "totalScrap": 75
+      "totalScrap": 135
     }
   },
   "-781014061": {
@@ -2504,7 +2520,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 15,
-      "totalScrap": 105
+      "totalScrap": 165
     }
   },
   "-1866909924": {
@@ -2532,7 +2548,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 15,
-      "totalScrap": 240
+      "totalScrap": 300
     }
   },
   "-1614955425": {
@@ -2548,7 +2564,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 60,
-      "totalScrap": 300
+      "totalScrap": 360
     }
   },
   "-1758372725": {
@@ -2600,7 +2616,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 15,
-      "totalScrap": 90
+      "totalScrap": 150
     }
   },
   "-1284169891": {
@@ -2608,7 +2624,15 @@
     "workbench": {
       "type": "210787554",
       "scrap": 30,
-      "totalScrap": 240
+      "totalScrap": 300
+    }
+  },
+  "-379403794": {
+    "researchTable": 60,
+    "workbench": {
+      "type": "210787554",
+      "scrap": 60,
+      "totalScrap": 75
     }
   },
   "-1367281941": {
@@ -2632,7 +2656,7 @@
     "workbench": {
       "type": "210787554",
       "scrap": 60,
-      "totalScrap": 345
+      "totalScrap": 405
     }
   },
   "-1478212975": {

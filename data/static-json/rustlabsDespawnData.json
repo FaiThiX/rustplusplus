@@ -463,6 +463,10 @@
     "time": 1200,
     "timeString": "20 min"
   },
+  "607785075": {
+    "time": 2400,
+    "timeString": "40 min"
+  },
   "609049394": {
     "time": 300,
     "timeString": "5 min"
@@ -1028,6 +1032,10 @@
     "timeString": "5 min"
   },
   "1272768630": {
+    "time": 300,
+    "timeString": "5 min"
+  },
+  "1285226495": {
     "time": 300,
     "timeString": "5 min"
   },
@@ -1960,6 +1968,10 @@
     "timeString": "40 min"
   },
   "-1615281216": {
+    "time": 2400,
+    "timeString": "40 min"
+  },
+  "-478923685": {
     "time": 2400,
     "timeString": "40 min"
   },
@@ -3271,6 +3283,10 @@
     "time": 300,
     "timeString": "5 min"
   },
+  "-173268138": {
+    "time": 300,
+    "timeString": "5 min"
+  },
   "-173268132": {
     "time": 300,
     "timeString": "5 min"
@@ -3774,6 +3790,10 @@
   "-1284169891": {
     "time": 1200,
     "timeString": "20 min"
+  },
+  "-379403794": {
+    "time": 2400,
+    "timeString": "40 min"
   },
   "-1367281941": {
     "time": 1200,
